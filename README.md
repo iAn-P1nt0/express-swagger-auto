@@ -145,6 +145,31 @@ const openApiSchema = adapter.convert(userSchema);
 // Automatically converts to OpenAPI schema format
 ```
 
+## Examples
+
+Explore complete working examples in the [`examples/`](./examples) directory:
+
+- **[decorator-example](./examples/decorator-example)**: TypeScript decorators with Zod validation
+  - Demonstrates `@Route`, `@Parameter`, `@RequestBody`, `@Response` decorators
+  - Full CRUD user management API
+  - Type-safe request/response handling
+
+- **[jsdoc-example](./examples/jsdoc-example)**: JavaScript with JSDoc comments and Joi validation
+  - Product catalog API with pagination
+  - JSDoc-style inline documentation (Phase 3 parser coming)
+  - Manual route metadata with Joi schema conversion
+
+- **[runtime-example](./examples/runtime-example)**: Runtime schema capture with snapshot storage
+  - Zero-annotation blog API
+  - Automatic schema inference from request/response data
+  - Snapshot persistence with deduplication
+
+Each example includes:
+- Complete implementation with README
+- Installation and usage instructions
+- curl command examples
+- Running Swagger UI integration
+
 ## CLI Usage
 
 ```bash
@@ -165,11 +190,11 @@ npx express-swagger-auto migrate swagger-jsdoc
 
 | Phase | Status | Focus |
 |-------|--------|-------|
-| 1 | **Current** | Core foundation, route discovery, basic spec generation |
-| 2 | Planned | Schema extraction (Zod/Joi/Yup), plugin API, runtime inference |
-| 3 | Planned | AST tooling, decorator system, example + type inference |
+| 1 | ✅ Complete | Core foundation, route discovery, basic spec generation |
+| 2 | ✅ Complete | Schema extraction (Zod/Joi/Yup), plugin API, runtime inference |
+| 3 | **Current** | AST tooling, JSDoc parser, advanced type inference |
 | 4 | Planned | Security detection, perf tuning, hot reload, CLI completion |
-| 5 | Planned | Docs site, examples, CI/CD, npm publish |
+| 5 | Planned | Docs site, CI/CD, npm publish |
 
 ## Configuration
 

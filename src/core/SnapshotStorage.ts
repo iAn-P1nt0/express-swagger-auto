@@ -21,6 +21,11 @@ export class SnapshotStorage {
   private config: Required<SnapshotStorageConfig>;
   private snapshots: Map<string, RuntimeSnapshot[]> = new Map();
 
+  /** Public options accessor for external use */
+  public get options(): Required<SnapshotStorageConfig> {
+    return this.config;
+  }
+
   constructor(config: SnapshotStorageConfig = {}) {
     this.config = {
       enabled: config.enabled ?? process.env.NODE_ENV === 'development',
