@@ -1,6 +1,10 @@
 export { RouteDiscovery } from './core/RouteDiscovery';
 export { SpecGenerator } from './core/SpecGenerator';
+export { SnapshotStorage } from './core/SnapshotStorage';
 export { ZodAdapter } from './validators/ZodAdapter';
+export { JoiAdapter } from './validators/JoiAdapter';
+export { YupAdapter } from './validators/YupAdapter';
+export { ValidatorRegistry, validatorRegistry } from './validators/ValidatorRegistry';
 export { runtimeCapture } from './middleware/runtimeCapture';
 export { createSwaggerUIMiddleware } from './middleware/swaggerUI';
 

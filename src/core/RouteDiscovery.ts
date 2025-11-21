@@ -2,22 +2,24 @@ import type { ExpressApp, RouteMetadata } from '../types';
 
 export class RouteDiscovery {
   private routes: RouteMetadata[] = [];
+  private visitedLayers = new Set<any>();
 
   discover(app: ExpressApp): RouteMetadata[] {
     this.routes = [];
+    this.visitedLayers.clear();
     this.extractRoutes(app);
     return this.routes;
   }
 
   private extractRoutes(app: ExpressApp, basePath = ''): void {
-    // Phase 1: Minimal route extraction from Express router stack
-    // TODO(Phase 2): Add nested router traversal with proper path composition
+    // Phase 2: Enhanced route extraction with nested router support
     // TODO(Phase 3): Extract middleware metadata and decorator information
 
     if (!app || typeof app !== 'object') {
       return;
     }
 
+    // Support both app._router.stack and router.stack
     const stack = (app as any)._router?.stack || (app as any).stack;
 
     if (!Array.isArray(stack)) {
@@ -25,30 +27,70 @@ export class RouteDiscovery {
     }
 
     for (const layer of stack) {
-      if (!layer.route) {
-        if (layer.name === 'router' && layer.handle?.stack) {
-          const path = layer.regexp
-            ? this.extractPathFromRegexp(layer.regexp)
-            : '';
-          this.extractRoutes(layer.handle, basePath + path);
-        }
+      // Avoid infinite loops by tracking visited layers
+      if (this.visitedLayers.has(layer)) {
+        continue;
+      }
+      this.visitedLayers.add(layer);
+
+      // Handle regular routes
+      if (layer.route) {
+        this.extractRoute(layer, basePath);
         continue;
       }
 
-      const route = layer.route;
-      const methods = Object.keys(route.methods);
+      // Handle nested routers
+      if (layer.name === 'router' && layer.handle) {
+        const nestedPath = this.extractPathFromLayer(layer);
+        const fullBasePath = this.normalizePath(basePath + nestedPath);
+        this.extractRoutes(layer.handle, fullBasePath);
+        continue;
+      }
 
-      for (const method of methods) {
-        const fullPath = this.normalizePath(basePath + route.path);
-
-        this.routes.push({
-          method: method.toUpperCase(),
-          path: fullPath,
-          handler: route.stack[0]?.handle || (() => {}),
-          metadata: this.extractMetadataFromHandler(route.stack[0]?.handle),
-        });
+      // Handle bound routers (app.use('/prefix', router))
+      if (layer.handle && typeof layer.handle === 'function' && layer.handle.stack) {
+        const nestedPath = this.extractPathFromLayer(layer);
+        const fullBasePath = this.normalizePath(basePath + nestedPath);
+        this.extractRoutes(layer.handle, fullBasePath);
       }
     }
+  }
+
+  private extractRoute(layer: any, basePath: string): void {
+    const route = layer.route;
+    if (!route) return;
+
+    const methods = Object.keys(route.methods);
+
+    for (const method of methods) {
+      const fullPath = this.normalizePath(basePath + route.path);
+
+      // Get all handlers from the route stack
+      const handlers = route.stack || [];
+      const primaryHandler = handlers[handlers.length - 1]?.handle || (() => {});
+
+      this.routes.push({
+        method: method.toUpperCase(),
+        path: fullPath,
+        handler: primaryHandler,
+        metadata: this.extractMetadataFromHandler(primaryHandler),
+      });
+    }
+  }
+
+  private extractPathFromLayer(layer: any): string {
+    // Try to get path from layer.regexp
+    if (layer.regexp) {
+      const extracted = this.extractPathFromRegexp(layer.regexp);
+      if (extracted) return extracted;
+    }
+
+    // Try to get path from layer.path
+    if (typeof layer.path === 'string') {
+      return layer.path;
+    }
+
+    return '';
   }
 
   private extractPathFromRegexp(regexp: RegExp): string {

@@ -64,6 +64,13 @@ export interface OpenAPISchema {
   allOf?: OpenAPISchema[];
   oneOf?: OpenAPISchema[];
   anyOf?: OpenAPISchema[];
+  pattern?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  minItems?: number;
+  maxItems?: number;
 }
 
 export interface OpenAPISpec {

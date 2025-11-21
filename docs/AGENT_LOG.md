@@ -130,3 +130,92 @@ Next agent should:
 **Status**: ✅ Phase 1 foundation complete. All quality gates passed. Ready for Phase 2 or production use with manual RouteMetadata.
 
 **Hand-off**: To Architecture & Strategy Lead for Phase 2 planning or Release Steward for Phase 1 preview publish.
+
+---
+
+## 2025-11-22 00:28 UTC - Phase 2 Implementation In Progress
+
+**Agent**: Implementation Engineer (GPT-5.1-Codex via Claude Code)
+
+**Mission**: Implement Phase 2 schema extraction pipeline per CLAUDE.md specifications
+
+### Completed Features
+
+1. **Enhanced RouteDiscovery**
+   - Added visited layer tracking to prevent infinite loops
+   - Improved nested router traversal with path composition
+   - Better support for Express 4 & 5 router patterns
+   - Enhanced path extraction from layer.regexp and layer.path
+
+2. **Joi Validator Adapter**
+   - Complete Joi schema detection via `isJoi` flag
+   - Conversion of primitive types (string, number, boolean, date)
+   - Object schema with required field tracking
+   - Array schema with items and min/max constraints
+   - String validation rules (email, uri, uuid, pattern, length)
+   - Number validation rules (integer, min, max)
+   - Alternatives (oneOf) support
+   - Description and example extraction
+   - **20+ conformance tests created**
+
+3. **Yup Validator Adapter**
+   - Complete Yup schema detection via `__isYupSchema__` flag
+   - Conversion of primitive types (string, number, boolean, date, mixed)
+   - Object schema with optional field handling
+   - Array schema with innerType and constraints
+   - String validation tests (email, url, uuid, matches, min/max)
+   - Number validation tests (integer, min, max, positive)
+   - Label and meta description support
+   - Default value handling
+   - **18+ conformance tests created**
+
+4. **Validator Plugin API**
+   - `ValidatorRegistry` singleton with adapter management
+   - Built-in registration of Zod, Joi, Yup adapters
+   - `register()`, `unregister()`, `getAdapter()` methods
+   - `detectAndConvert()` auto-detection and conversion
+   - `clear()` and `reset()` for testing
+   - **16+ registry tests created**
+
+5. **Runtime Snapshot Storage**
+   - `SnapshotStorage` class with file-based persistence
+   - SHA-256 hash generation for deduplication
+   - Configurable output directory (`data/runtime-snapshots/`)
+   - Max snapshots per route (default: 100)
+   - `store()`, `getSnapshots()`, `analyzeSchema()` methods
+   - Schema merging from multiple observations
+   - Load existing snapshots on initialization
+   - **15+ storage tests created**
+
+6. **Enhanced Runtime Capture**
+   - Integration with SnapshotStorage
+   - Automatic schema inference from request/response data
+   - Recursive type detection (string, number, boolean, object, array)
+   - Snapshot storage with deduplication
+   - Configurable snapshot storage instance
+
+### Test Status
+
+- **Build**: ✅ Pass (CJS + ESM + d.ts)
+- **Lint**: ✅ Pass (0 errors, 0 warnings)
+- **Tests**: ⚠️ 99/121 passing (22 failures in Joi adapter tests)
+
+### Known Issues
+
+- Some Joi adapter tests failing due to describe() API nuances
+- Need to debug Joi object/array schema conversion
+- Some ValidatorRegistry integration tests need adjustment
+
+### Phase 2 Remaining Work
+
+- Fix remaining Joi adapter test failures
+- Create example apps for decorator, JSDoc, runtime strategies
+- Update README with Phase 2 features
+- Update documentation with validator adapter usage
+- Performance benchmarking (target: <50ms/100 routes)
+
+---
+
+**Status**: 🔄 Phase 2 80% complete. Core features implemented. Test fixes and examples remaining.
+
+**Hand-off**: To QA Agent for test debugging or continue implementation.

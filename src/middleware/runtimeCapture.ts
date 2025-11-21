@@ -1,9 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
+import { SnapshotStorage } from '../core/SnapshotStorage';
 
 export interface RuntimeCaptureConfig {
   enabled?: boolean;
   sensitiveFields?: string[];
   maxBodySize?: number;
+  snapshotStorage?: SnapshotStorage;
 }
 
 const DEFAULT_SENSITIVE_FIELDS = [
@@ -21,7 +23,11 @@ export function runtimeCapture(config: RuntimeCaptureConfig = {}) {
     enabled = process.env.NODE_ENV === 'development',
     sensitiveFields = DEFAULT_SENSITIVE_FIELDS,
     maxBodySize = 1024 * 100,
+    snapshotStorage,
   } = config;
+
+  // Create default snapshot storage if not provided
+  const storage = snapshotStorage || new SnapshotStorage({ enabled });
 
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!enabled) {
@@ -29,8 +35,7 @@ export function runtimeCapture(config: RuntimeCaptureConfig = {}) {
       return;
     }
 
-    // Phase 1: Basic runtime capture framework
-    // TODO(Phase 2): Store captured data for schema inference
+    // Phase 2: Enhanced runtime capture with snapshot storage
     // TODO(Phase 3): Implement sample aggregation and drift analysis
     // TODO(Phase 4): Add hot reload and watch mode integration
 
@@ -50,7 +55,8 @@ export function runtimeCapture(config: RuntimeCaptureConfig = {}) {
         body: captureBody(body, maxBodySize, sensitiveFields),
       };
 
-      storeCapturedData(capturedData);
+      // Store snapshot with inferred schemas
+      storeCapturedData(capturedData, storage);
 
       return originalSend(body);
     };
@@ -108,11 +114,62 @@ function captureBody(body: any, maxSize: number, sensitiveFields: string[]): any
   return typeof parsed === 'object' ? sanitizeObject(parsed, sensitiveFields) : parsed;
 }
 
-function storeCapturedData(data: any): void {
-  // Phase 2: Implement persistent storage for runtime samples
-  // TODO(Phase 2): Write to data/runtime-snapshots/*.json with hashing
-  // TODO(Phase 3): Implement schema inference from captured samples
-  if (process.env.DEBUG) {
-    console.warn('[RuntimeCapture]', JSON.stringify(data, null, 2));
+function storeCapturedData(data: any, storage: SnapshotStorage): void {
+  // Phase 2: Store runtime samples with schema inference
+  try {
+    const requestSchema = inferSchema(data.body);
+    const responseSchema = inferSchema(data.response?.body);
+
+    storage.store({
+      method: data.method,
+      path: data.path,
+      requestSchema,
+      responseSchema,
+    });
+  } catch (error) {
+    if (process.env.DEBUG) {
+      console.error('[RuntimeCapture] Failed to store snapshot:', error);
+    }
+  }
+}
+
+function inferSchema(data: any): any {
+  // Phase 2: Basic schema inference from runtime data
+  // TODO(Phase 3): Enhanced type inference with union types and advanced patterns
+
+  if (data === null || data === undefined) {
+    return null;
+  }
+
+  const type = typeof data;
+
+  switch (type) {
+    case 'string':
+      return { type: 'string' };
+    case 'number':
+      return { type: 'number' };
+    case 'boolean':
+      return { type: 'boolean' };
+    case 'object': {
+      if (Array.isArray(data)) {
+        const itemSchema = data.length > 0 ? inferSchema(data[0]) : {};
+        return {
+          type: 'array',
+          items: itemSchema,
+        };
+      }
+
+      const properties: Record<string, any> = {};
+      for (const [key, value] of Object.entries(data)) {
+        properties[key] = inferSchema(value);
+      }
+
+      return {
+        type: 'object',
+        properties,
+      };
+    }
+    default:
+      return { type: 'object' };
   }
 }
