@@ -40,6 +40,8 @@ export class ZodAdapter implements ValidatorAdapter {
         return this.convertZodArray(zodSchema);
       case 'ZodEnum':
         return this.convertZodEnum(zodSchema);
+      case 'ZodOptional':
+        return this.convert(zodSchema._def.innerType);
       default:
         return { type: 'object', description: `Unsupported Zod type: ${typeName}` };
     }
