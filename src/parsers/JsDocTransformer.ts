@@ -1,5 +1,5 @@
 import { Block } from 'comment-parser';
-import { RouteMetadata, OpenAPIParameter, OpenAPIResponse } from '../types';
+import { OpenAPIParameter, OpenAPIResponse, OpenAPIRequestBody } from '../types';
 
 export interface TransformOptions {
   defaultTags?: string[];
@@ -14,7 +14,7 @@ export interface JsDocMetadata {
   tags?: string[];
   parameters?: OpenAPIParameter[];
   responses?: Record<string, OpenAPIResponse>;
-  requestBody?: RouteMetadata['metadata']['requestBody'];
+  requestBody?: OpenAPIRequestBody;
   security?: Array<Record<string, string[]>>;
 }
 

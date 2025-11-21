@@ -11,6 +11,10 @@ export { JsDocParser } from './parsers/JsDocParser';
 export { JsDocTransformer } from './parsers/JsDocTransformer';
 export { CommentExtractor } from './parsers/CommentExtractor';
 
+export type { JsDocMetadata } from './parsers/JsDocTransformer';
+export type { ParsedRoute, JsDocParserOptions } from './parsers/JsDocParser';
+export type { ExtractedComment, CommentExtractorOptions } from './parsers/CommentExtractor';
+
 export type {
   OpenAPISpec,
   OpenAPIInfo,
