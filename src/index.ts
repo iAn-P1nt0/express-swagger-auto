@@ -7,6 +7,9 @@ export { YupAdapter } from './validators/YupAdapter';
 export { ValidatorRegistry, validatorRegistry } from './validators/ValidatorRegistry';
 export { runtimeCapture } from './middleware/runtimeCapture';
 export { createSwaggerUIMiddleware } from './middleware/swaggerUI';
+export { JsDocParser } from './parsers/JsDocParser';
+export { JsDocTransformer } from './parsers/JsDocTransformer';
+export { CommentExtractor } from './parsers/CommentExtractor';
 
 export type {
   OpenAPISpec,
