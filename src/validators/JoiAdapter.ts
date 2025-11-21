@@ -4,12 +4,13 @@ export class JoiAdapter implements ValidatorAdapter {
   name = 'joi';
 
   detect(schema: unknown): boolean {
-    // Phase 2: Joi schema detection
+    // Phase 2: Joi schema detection via type and $_root properties
     return (
       schema !== null &&
       typeof schema === 'object' &&
-      'isJoi' in schema &&
-      (schema as any).isJoi === true
+      'type' in schema &&
+      '$_root' in schema &&
+      typeof (schema as any).describe === 'function'
     );
   }
 
@@ -74,7 +75,7 @@ export class JoiAdapter implements ValidatorAdapter {
         schema.format = 'email';
       } else if (rule.name === 'uri') {
         schema.format = 'uri';
-      } else if (rule.name === 'uuid') {
+      } else if (rule.name === 'guid' || rule.name === 'uuid') {
         schema.format = 'uuid';
       } else if (rule.name === 'pattern') {
         schema.pattern = rule.args?.regex?.toString().slice(1, -1);
