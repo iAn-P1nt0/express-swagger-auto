@@ -38,8 +38,8 @@ export function Route(options: RouteDecoratorOptions = {}) {
 
 export function Parameter(options: ParameterDecoratorOptions) {
   return function (
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
     if (!descriptor.value.__openapi_metadata) {
@@ -58,8 +58,8 @@ export function Parameter(options: ParameterDecoratorOptions) {
 
 export function RequestBody(options: RequestBodyDecoratorOptions) {
   return function (
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
     if (!descriptor.value.__openapi_metadata) {
@@ -74,8 +74,8 @@ export function RequestBody(options: RequestBodyDecoratorOptions) {
 
 export function Response(options: ResponseDecoratorOptions) {
   return function (
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
     if (!descriptor.value.__openapi_metadata) {
