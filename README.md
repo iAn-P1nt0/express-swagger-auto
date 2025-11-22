@@ -89,7 +89,7 @@ class UserController {
 }
 ```
 
-### Strategy 2: JSDoc Comments (Phase 3)
+### Strategy 2: JSDoc Comments (Phase 3) ✨
 
 ```javascript
 import { RouteDiscovery, JsDocParser, SpecGenerator } from 'express-swagger-auto';
@@ -118,6 +118,8 @@ const routes = discovery.discover(app, {
 const generator = new SpecGenerator({ info: { title: 'My API', version: '1.0.0' } });
 const spec = generator.generate(routes);
 ```
+
+**📖 [Complete JSDoc Tags Reference](./docs/JSDOC_TAGS.md)** - Full documentation of all supported tags and syntax
 
 ### Strategy 3: Runtime Capture (Dev Mode)
 
