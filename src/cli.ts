@@ -88,7 +88,7 @@ Examples:
   express-swagger-auto validate ./openapi.json
   express-swagger-auto migrate swagger-jsdoc
 
-For more information, visit: https://github.com/ipgthb/express-swagger-auto
+For more information, visit: https://github.com/iAn-P1nt0/express-swagger-auto
   `);
 }
 

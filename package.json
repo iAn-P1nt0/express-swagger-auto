@@ -58,7 +58,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ipgthb/express-swagger-auto"
+    "url": "https://github.com/iAn-P1nt0/express-swagger-auto"
   },
   "engines": {
     "node": ">=16.0.0"
