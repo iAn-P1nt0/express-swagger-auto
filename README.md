@@ -89,7 +89,7 @@ class UserController {
 }
 ```
 
-### Strategy 2: JSDoc Comments (Phase 3) ✨
+### Strategy 2: JSDoc Comments ✅
 
 ```javascript
 import { RouteDiscovery, JsDocParser, SpecGenerator } from 'express-swagger-auto';
@@ -203,9 +203,11 @@ npx express-swagger-auto migrate swagger-jsdoc
 |-------|--------|-------|
 | 1 | ✅ Complete | Core foundation, route discovery, basic spec generation |
 | 2 | ✅ Complete | Schema extraction (Zod/Joi/Yup), plugin API, runtime inference |
-| 3 | **Current** | AST tooling, JSDoc parser, advanced type inference |
-| 4 | Planned | Security detection, perf tuning, hot reload, CLI completion |
+| 3 | ✅ Complete | JSDoc parser, decorator system, example merging |
+| 4 | **Current** | Security detection, perf tuning, hot reload, CLI completion |
 | 5 | Planned | Docs site, CI/CD, npm publish |
+
+**Phase 3 Completed**: JSDoc parser fully implemented and validated! See [PHASE_STATUS.md](./PHASE_STATUS.md) for details.
 
 ## Configuration
 
