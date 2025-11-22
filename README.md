@@ -89,25 +89,34 @@ class UserController {
 }
 ```
 
-### Strategy 2: JSDoc Comments
+### Strategy 2: JSDoc Comments (Phase 3)
 
 ```javascript
+import { RouteDiscovery, JsDocParser, SpecGenerator } from 'express-swagger-auto';
+
 /**
  * @openapi
- * /users/{id}:
- *   get:
- *     summary: Get user by ID
- *     tags: [users]
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         schema:
- *           type: string
+ * @route GET /users/{id}
+ * @summary Get user by ID
+ * @tags users
+ * @param {string} id.path.required - User ID
+ * @response 200 - User found
+ * @response 404 - User not found
  */
 app.get('/users/:id', (req, res) => {
   // handler logic
 });
+
+// Automatic parsing from JSDoc comments
+const parser = new JsDocParser({ sourceFiles: ['src/**/*.js'] });
+const discovery = new RouteDiscovery();
+const routes = discovery.discover(app, {
+  enableJsDocParsing: true,
+  jsDocParser: parser,
+});
+
+const generator = new SpecGenerator({ info: { title: 'My API', version: '1.0.0' } });
+const spec = generator.generate(routes);
 ```
 
 ### Strategy 3: Runtime Capture (Dev Mode)

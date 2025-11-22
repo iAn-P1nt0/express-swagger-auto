@@ -1,4 +1,5 @@
 export { RouteDiscovery } from './core/RouteDiscovery';
+export type { RouteDiscoveryOptions } from './core/RouteDiscovery';
 export { SpecGenerator } from './core/SpecGenerator';
 export { SnapshotStorage } from './core/SnapshotStorage';
 export { ZodAdapter } from './validators/ZodAdapter';
