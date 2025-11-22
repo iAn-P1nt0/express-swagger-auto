@@ -134,8 +134,7 @@ function storeCapturedData(data: any, storage: SnapshotStorage): void {
 }
 
 function inferSchema(data: any): any {
-  // Phase 2: Basic schema inference from runtime data
-  // TODO(Phase 3): Enhanced type inference with union types and advanced patterns
+  // Phase 3: Enhanced schema inference with example values
 
   if (data === null || data === undefined) {
     return null;
@@ -145,11 +144,11 @@ function inferSchema(data: any): any {
 
   switch (type) {
     case 'string':
-      return { type: 'string' };
+      return { type: 'string', example: data };
     case 'number':
-      return { type: 'number' };
+      return { type: 'number', example: data };
     case 'boolean':
-      return { type: 'boolean' };
+      return { type: 'boolean', example: data };
     case 'object': {
       if (Array.isArray(data)) {
         const itemSchema = data.length > 0 ? inferSchema(data[0]) : {};

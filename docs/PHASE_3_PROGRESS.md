@@ -138,12 +138,34 @@ app.get('/users/:id', (req, res) => { ... });
 
 ## Integration Points
 
+### 4. Example Value Merger (100%)
+
+**Files Created**:
+- `src/core/ExampleMerger.ts` - Merges runtime snapshots into comprehensive schemas
+- `src/core/ExampleMerger.test.ts` - 11 comprehensive tests
+
+**Features Implemented**:
+- ✅ Merge multiple runtime snapshots for same route
+- ✅ Detect required vs optional fields (based on presence across snapshots)
+- ✅ Auto-detect enum patterns from string values (2-10 unique values)
+- ✅ Number constraint detection (min/max from runtime examples)
+- ✅ Example value enrichment for all schemas
+- ✅ Deep object and array schema merging
+- ✅ Pattern detection API for field analysis
+
+**Impact**:
+- Runtime capture now includes example values in inferred schemas
+- Multiple API requests build comprehensive schemas automatically
+- Enum detection helps document constrained string values
+- Test count increased from 141 to 152 tests
+
 ### Exported from Main Package
 
 ```typescript
 export { JsDocParser } from './parsers/JsDocParser';
 export { JsDocTransformer } from './parsers/JsDocTransformer';
 export { CommentExtractor } from './parsers/CommentExtractor';
+export { ExampleMerger } from './core/ExampleMerger';
 ```
 
 ### Usage Example
@@ -217,8 +239,8 @@ if (!app) {
 1. ✅ **Update jsdoc-example** - Automatic parsing working end-to-end
 2. ✅ **RouteDiscovery Integration** - JSDoc parser fully integrated
 3. ✅ **Critical Bug Fix** - Fixed Express app type guard (`typeof app !== 'object'` → `!app`)
-4. **AST Integration** - Match JSDoc comments to route handlers via AST (stretch goal)
-5. **Example inference** - Enhance runtime capture with example merging
+4. ✅ **Example Merger** - Enhanced runtime schema inference with examples and pattern detection
+5. **AST Integration** - Match JSDoc comments to route handlers via AST (stretch goal)
 6. **Decorator enhancements** - Add composition and inheritance
 7. **TypeScript type inference** - Extract types from interfaces
 
@@ -235,7 +257,7 @@ Progress toward Phase 3 completion:
 - ⏳ Documentation updated with JSDoc examples (PARTIAL)
 - ⏳ Migration guide published (NOT STARTED)
 
-**Overall Phase 3 Completion: ~60%** (up from 45%)
+**Overall Phase 3 Completion: ~70%** (up from 60%)
 
 ## Breaking Changes
 

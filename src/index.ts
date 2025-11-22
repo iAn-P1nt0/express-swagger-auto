@@ -2,6 +2,7 @@ export { RouteDiscovery } from './core/RouteDiscovery';
 export type { RouteDiscoveryOptions } from './core/RouteDiscovery';
 export { SpecGenerator } from './core/SpecGenerator';
 export { SnapshotStorage } from './core/SnapshotStorage';
+export { ExampleMerger } from './core/ExampleMerger';
 export { ZodAdapter } from './validators/ZodAdapter';
 export { JoiAdapter } from './validators/JoiAdapter';
 export { YupAdapter } from './validators/YupAdapter';
@@ -34,3 +35,4 @@ export type {
 
 export type { RuntimeCaptureConfig } from './middleware/runtimeCapture';
 export type { SwaggerUIConfig } from './middleware/swaggerUI';
+export type { RuntimeSnapshot, SnapshotStorageConfig } from './core/SnapshotStorage';
