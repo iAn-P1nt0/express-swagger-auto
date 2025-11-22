@@ -5,6 +5,7 @@ const {
   SpecGenerator,
   createSwaggerUIMiddleware,
   JoiAdapter,
+  JsDocParser,
 } = require('express-swagger-auto');
 
 const app = express();
@@ -55,13 +56,14 @@ const products = [
 let nextId = 4;
 
 /**
+ * @openapi
  * @route GET /products
  * @summary Get all products
  * @description Retrieves a paginated list of all products
  * @tags products
- * @param {number} [page=1] - Page number for pagination
- * @param {number} [limit=10] - Number of items per page
- * @param {string} [category] - Filter by category
+ * @param {number} [page=1].query - Page number for pagination
+ * @param {number} [limit=10].query - Number of items per page
+ * @param {string} category.query - Filter by category
  * @response 200 - List of products
  * @response 400 - Invalid query parameters
  */
@@ -91,6 +93,7 @@ app.get('/products', (req, res) => {
 });
 
 /**
+ * @openapi
  * @route GET /products/{id}
  * @summary Get product by ID
  * @description Retrieves a single product by its unique identifier
@@ -114,6 +117,7 @@ app.get('/products/:id', (req, res) => {
 });
 
 /**
+ * @openapi
  * @route POST /products
  * @summary Create new product
  * @description Creates a new product in the catalog
@@ -143,6 +147,7 @@ app.post('/products', (req, res) => {
 });
 
 /**
+ * @openapi
  * @route PUT /products/{id}
  * @summary Update product
  * @description Updates an existing product
@@ -186,6 +191,7 @@ app.put('/products/:id', (req, res) => {
 });
 
 /**
+ * @openapi
  * @route DELETE /products/{id}
  * @summary Delete product
  * @description Removes a product from the catalog
@@ -210,6 +216,7 @@ app.delete('/products/:id', (req, res) => {
 });
 
 /**
+ * @openapi
  * @route GET /categories
  * @summary Get all categories
  * @description Retrieves a list of available product categories
@@ -221,155 +228,23 @@ app.get('/categories', (req, res) => {
   res.json({ categories });
 });
 
-// Generate OpenAPI spec using manual route metadata
-// Note: JSDoc parser is Phase 3 - for now we define routes manually
-const adapter = new JoiAdapter();
+// Generate OpenAPI spec using automatic JSDoc parsing (Phase 3)
+const parser = new JsDocParser({
+  sourceFiles: [__filename], // Parse this file
+  includeAll: false, // Only include @openapi tagged comments
+});
 
-const routes = [
-  {
-    method: 'GET',
-    path: '/products',
-    handler: () => {},
-    metadata: {
-      summary: 'Get all products',
-      description: 'Retrieves a paginated list of all products',
-      tags: ['products'],
-      parameters: [
-        {
-          name: 'page',
-          in: 'query',
-          schema: { type: 'integer', default: 1 },
-        },
-        {
-          name: 'limit',
-          in: 'query',
-          schema: { type: 'integer', default: 10 },
-        },
-        {
-          name: 'category',
-          in: 'query',
-          schema: { type: 'string' },
-        },
-      ],
-      responses: {
-        '200': {
-          description: 'List of products',
-        },
-      },
-    },
-  },
-  {
-    method: 'GET',
-    path: '/products/:id',
-    handler: () => {},
-    metadata: {
-      summary: 'Get product by ID',
-      description: 'Retrieves a single product',
-      tags: ['products'],
-      responses: {
-        '200': {
-          description: 'Product found',
-          content: {
-            'application/json': {
-              schema: adapter.convert(productSchema),
-            },
-          },
-        },
-        '404': {
-          description: 'Product not found',
-        },
-      },
-    },
-  },
-  {
-    method: 'POST',
-    path: '/products',
-    handler: () => {},
-    metadata: {
-      summary: 'Create new product',
-      description: 'Creates a new product in the catalog',
-      tags: ['products'],
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: adapter.convert(createProductSchema),
-          },
-        },
-      },
-      responses: {
-        '201': {
-          description: 'Product created',
-          content: {
-            'application/json': {
-              schema: adapter.convert(productSchema),
-            },
-          },
-        },
-        '400': {
-          description: 'Invalid input',
-        },
-      },
-    },
-  },
-  {
-    method: 'PUT',
-    path: '/products/:id',
-    handler: () => {},
-    metadata: {
-      summary: 'Update product',
-      description: 'Updates an existing product',
-      tags: ['products'],
-      responses: {
-        '200': {
-          description: 'Product updated',
-        },
-        '404': {
-          description: 'Product not found',
-        },
-      },
-    },
-  },
-  {
-    method: 'DELETE',
-    path: '/products/:id',
-    handler: () => {},
-    metadata: {
-      summary: 'Delete product',
-      description: 'Removes a product from the catalog',
-      tags: ['products'],
-      responses: {
-        '204': {
-          description: 'Product deleted',
-        },
-        '404': {
-          description: 'Product not found',
-        },
-      },
-    },
-  },
-  {
-    method: 'GET',
-    path: '/categories',
-    handler: () => {},
-    metadata: {
-      summary: 'Get all categories',
-      description: 'Retrieves available product categories',
-      tags: ['categories'],
-      responses: {
-        '200': {
-          description: 'List of categories',
-        },
-      },
-    },
-  },
-];
+const discovery = new RouteDiscovery();
+const routes = discovery.discover(app, {
+  enableJsDocParsing: true,
+  jsDocParser: parser,
+});
 
 const generator = new SpecGenerator({
   info: {
     title: 'Product Catalog API',
     version: '1.0.0',
-    description: 'Example API demonstrating JSDoc-based documentation with Joi validation',
+    description: 'Example API demonstrating automatic JSDoc-based documentation with Joi validation',
     contact: {
       name: 'API Support',
       email: 'support@example.com',
@@ -400,6 +275,7 @@ app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
   console.log(`OpenAPI spec available at http://localhost:${PORT}/api-docs.json`);
-  console.log('\nNote: JSDoc parser (Phase 3) not yet implemented.');
-  console.log('This example uses manual route metadata with Joi schemas.');
+  console.log('\n✨ JSDoc Parser (Phase 3) Active!');
+  console.log(`   Parsed ${routes.length} routes from JSDoc comments`);
+  console.log('   Using automatic JSDoc parsing with Joi schemas');
 });

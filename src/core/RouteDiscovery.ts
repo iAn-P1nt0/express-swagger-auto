@@ -69,6 +69,7 @@ export class RouteDiscovery {
     // TODO(Phase 3): Extract middleware metadata and decorator information
 
     if (!app || typeof app !== 'object') {
+      console.log('[RouteDiscovery] Invalid app object');
       return;
     }
 
@@ -76,8 +77,11 @@ export class RouteDiscovery {
     const stack = (app as any)._router?.stack || (app as any).stack;
 
     if (!Array.isArray(stack)) {
+      console.log('[RouteDiscovery] No stack found');
       return;
     }
+
+    console.log(`[RouteDiscovery] Processing ${stack.length} layers`);
 
     for (const layer of stack) {
       // Avoid infinite loops by tracking visited layers
@@ -88,9 +92,12 @@ export class RouteDiscovery {
 
       // Handle regular routes
       if (layer.route) {
+        console.log(`[RouteDiscovery] Found route: ${layer.route.path}`);
         this.extractRoute(layer, basePath);
         continue;
       }
+
+      console.log(`[RouteDiscovery] Skipping layer: ${layer.name}`);
 
       // Handle nested routers
       if (layer.name === 'router' && layer.handle) {
@@ -114,6 +121,7 @@ export class RouteDiscovery {
     if (!route) return;
 
     const methods = Object.keys(route.methods);
+    console.log(`[RouteDiscovery] extractRoute: ${methods.join(',')} ${route.path}`);
 
     for (const method of methods) {
       const fullPath = this.normalizePath(basePath + route.path);
@@ -128,10 +136,12 @@ export class RouteDiscovery {
       // Get JSDoc metadata if available
       const routeKey = this.makeRouteKey(method, fullPath);
       const jsDocMetadata = this.jsDocMetadataMap.get(routeKey);
+      console.log(`[RouteDiscovery] Looking for key: ${routeKey}, found: ${!!jsDocMetadata}`);
 
       // Merge metadata from both sources
       const mergedMetadata = this.mergeMetadata(decoratorMetadata, jsDocMetadata);
 
+      console.log(`[RouteDiscovery] Pushing route: ${method.toUpperCase()} ${fullPath}`);
       this.routes.push({
         method: method.toUpperCase(),
         path: fullPath,
