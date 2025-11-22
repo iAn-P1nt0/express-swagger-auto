@@ -54,12 +54,16 @@
     "joi",
     "yup"
   ],
-  "author": "",
+  "author": "Ian Pinto <ian-p1nt0> (https://github.com/iAn-P1nt0)",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iAn-P1nt0/express-swagger-auto"
+    "url": "git+https://github.com/iAn-P1nt0/express-swagger-auto.git"
   },
+  "bugs": {
+    "url": "https://github.com/iAn-P1nt0/express-swagger-auto/issues"
+  },
+  "homepage": "https://github.com/iAn-P1nt0/express-swagger-auto#readme",
   "engines": {
     "node": ">=16.0.0"
   },
