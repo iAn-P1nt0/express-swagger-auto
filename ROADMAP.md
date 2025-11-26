@@ -115,10 +115,10 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 ### Phase 7: Advanced CLI Features (Q1-Q2 2025)
 **Focus**: Enterprise CLI tooling and developer experience
 
-#### Phase 7.1: Quick Wins (v0.3.1) - Low Effort, High Impact
-- [ ] **`stats` command** - API metrics and statistics (operations, schemas, coverage)
-- [ ] **Shell completion** - bash, zsh, fish, PowerShell auto-completion
-- [ ] **Extended output formats** - checkstyle, junit, stylish, github-actions, codeclimate
+#### Phase 7.1: Quick Wins (v0.3.1) ✅ COMPLETE
+- [x] **`stats` command** - API metrics and statistics (operations, schemas, coverage)
+- [x] **Shell completion** - bash, zsh, fish, PowerShell auto-completion
+- [x] **Extended output formats** - checkstyle, junit, stylish, github-actions, codeclimate, markdown, gitlab
 
 #### Phase 7.2: API Governance (v0.4.0) - Medium Effort
 - [ ] **`diff` command** - Breaking change detection between spec versions
@@ -132,6 +132,11 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 - [ ] **`mock` command** - Mock server generation from specs
 - [ ] **`score` command** - API quality scoring with actionable recommendations
 - [ ] **`preview` command** - Hot-reloading documentation preview
+
+#### Phase 7.4: Developer Experience (v0.6.0) - Medium Effort
+- [x] **`export` command** - Export to Postman, Insomnia, Bruno, Hoppscotch collections
+- [x] **`examples` command** - Generate realistic examples using Faker.js patterns
+- [ ] **`env` command** - Multi-environment configuration management
 
 #### Validator Support:
 - [ ] Zod schema introspection improvements
@@ -147,17 +152,49 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 | Generate from Express | ✅ Unique | ❌ | ❌ | ❌ |
 | Multi-strategy (JSDoc/Decorator/Runtime) | ✅ Unique | ❌ | ❌ | ❌ |
 | Validate | ✅ | ✅ | ✅ | ✅ |
+| Stats | ✅ v0.3.1 | ✅ | ❌ | ❌ |
+| Shell Completion | ✅ v0.3.1 | ✅ | ❌ | ✅ |
+| Extended Formatters | ✅ v0.3.1 | ✅ | ✅ | ❌ |
 | Lint (custom rules) | 🔜 v0.4.0 | ✅ | ✅ | ❌ |
-| Stats | 🔜 v0.3.1 | ✅ | ❌ | ❌ |
 | Diff | 🔜 v0.4.0 | ❌ | ❌ | ❌ |
 | Bundle | 🔜 v0.5.0 | ✅ | ❌ | ❌ |
 | Mock Server | 🔜 v0.5.0 | ❌ | ❌ | ✅ |
-| Shell Completion | 🔜 v0.3.1 | ✅ | ❌ | ✅ |
+| Export (Multi-format) | ✅ v0.3.1 | ❌ | ❌ | ❌ |
+| SDK Generation | 🔜 v0.7.0 | ✅ | ❌ | ✅ |
+| Contract Testing | 🔜 v0.7.0 | ❌ | ❌ | ❌ |
+| AI Documentation | 🔜 v0.8.0 | ❌ | ❌ | ❌ |
 | SARIF Output | ✅ | ❌ | ✅ | ❌ |
 | Watch Mode | ✅ | ✅ | ❌ | ❌ |
 | Config File | ✅ | ✅ | ✅ | ✅ |
 
-### Phase 8: Performance & Scale (Q2 2025)
+### Phase 8: Enterprise Features (v0.7.0, Q2 2025)
+**Focus**: Enterprise-grade API governance and SDK generation
+
+**Planned Features:**
+- [ ] **`sdk` command** - TypeScript-first SDK generation with Zod schemas
+- [ ] **`contract` command** - Snapshot-based contract testing for CI/CD
+- [ ] **`policy` command** - Organizational API governance and standards enforcement
+- [ ] **`changelog` command** - Auto-generate changelogs from spec diffs
+
+**Target Metrics:**
+- SDK generation: < 30s for typical API
+- Contract testing: < 5s for comparison
+- Policy checks: < 2s for full ruleset
+
+### Phase 9: Advanced Features (v0.8.0, Q2-Q3 2025)
+**Focus**: Security, AI, and visualization
+
+**Planned Features:**
+- [ ] **`security-scan` command** - OWASP-based security analysis
+- [ ] **`ai-describe` command** - AI-powered description generation (OpenAI/Anthropic/Ollama)
+- [ ] **`graph` command** - API structure visualization (Mermaid, DOT, SVG)
+
+**AI Provider Support:**
+- OpenAI (primary, gpt-4o-mini default)
+- Anthropic (claude-3-haiku)
+- Ollama (local, llama3)
+
+### Phase 10: Performance & Scale (Q3 2025)
 **Focus**: Handle large enterprise APIs
 
 **Planned Features:**
@@ -174,7 +211,7 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 - Memory usage: < 50MB for 1000+ routes
 - Bundle size: Keep under 100KB gzipped
 
-### Phase 9: Ecosystem Integration (Q2-Q3 2025)
+### Phase 11: Ecosystem Integration (Q3-Q4 2025)
 **Focus**: First-class tooling integration
 
 **Planned Integrations:**
@@ -185,17 +222,6 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 - [ ] API gateway integrations (Kong, AWS API Gateway)
 - [ ] Documentation platform bridges (Stoplight, SwaggerHub)
 - [ ] APM integrations (New Relic, DataDog)
-
-### Phase 10: AI-Assisted Features (Q3 2025)
-**Focus**: Intelligent automation
-
-**Planned Features:**
-- [ ] AI description generation from code
-- [ ] Security recommendation engine
-- [ ] API design suggestions based on patterns
-- [ ] Automatic error response documentation
-- [ ] Smart example generation
-- [ ] API compatibility checking
 
 ## Public API Stability
 
