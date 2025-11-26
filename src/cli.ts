@@ -235,20 +235,110 @@ program
   .description('Serve Swagger UI for existing spec')
   .option('-s, --spec <path>', 'OpenAPI spec file (default: ./openapi.json)', './openapi.json')
   .option('-p, --port <number>', 'Port number (default: 3000)', '3000')
+  .option('--host <address>', 'Host address (default: localhost)', 'localhost')
   .action(function (options: any) {
     try {
-      console.log(colors.blue('🎯 Starting Swagger UI server...\n'));
+      const port = parseInt(options.port, 10);
+      const host = options.host;
 
-      if (!fs.existsSync(options.spec)) {
-        console.error(colors.red(`✗ Specification file not found: ${options.spec}`));
+      // Validate port number
+      if (isNaN(port) || port < 1 || port > 65535) {
+        console.error(colors.red(`✗ Invalid port number: ${options.port}`));
+        console.error(colors.yellow('Port must be between 1 and 65535\n'));
         process.exit(1);
       }
 
-      console.log(colors.yellow('⚠️  Serve command requires additional setup'));
-      console.log(colors.yellow('    Implementation coming in Phase 4\n'));
-      console.log(colors.yellow(`   To manually serve Swagger UI:`));
-      console.log(colors.yellow(`   1. Use SwaggerUI static files`));
-      console.log(colors.yellow(`   2. Point to spec file at: ${options.spec}\n`));
+      // Check if spec file exists
+      const specPath = path.resolve(options.spec);
+      if (!fs.existsSync(specPath)) {
+        console.error(colors.red(`✗ Specification file not found: ${specPath}`));
+        process.exit(1);
+      }
+
+      // Parse spec file
+      let spec;
+      try {
+        const content = fs.readFileSync(specPath, 'utf-8');
+        spec = JSON.parse(content);
+      } catch (error) {
+        console.error(colors.red(`✗ Failed to parse specification file:`));
+        console.error(colors.yellow(`  ${(error as any).message}\n`));
+        process.exit(1);
+      }
+
+      // Validate spec has required OpenAPI fields
+      if (!spec.openapi || !spec.info) {
+        console.error(colors.red(`✗ Invalid OpenAPI specification`));
+        console.error(colors.yellow('Spec must contain "openapi" and "info" fields\n'));
+        process.exit(1);
+      }
+
+      // Create Express app for serving Swagger UI
+      const express = require('express');
+      const swaggerUi = require('swagger-ui-express');
+      const app = express();
+
+      const swaggerOptions = {
+        customSiteTitle: spec.info.title || 'API Documentation',
+        swaggerOptions: {
+          url: '/openapi.json',
+        },
+      };
+
+      // Serve spec as JSON
+      app.get('/openapi.json', (_req: any, res: any) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(spec);
+      });
+
+      // Serve Swagger UI
+      app.use('/api-docs', swaggerUi.serve);
+      app.get('/api-docs', swaggerUi.setup(spec, swaggerOptions));
+
+      // Root route redirects to API docs
+      app.get('/', (_req: any, res: any) => {
+        res.redirect('/api-docs');
+      });
+
+      // Health check endpoint
+      app.get('/health', (_req: any, res: any) => {
+        res.json({ status: 'ok', timestamp: new Date().toISOString() });
+      });
+
+      // Start server
+      const server = app.listen(port, host, () => {
+        console.log(colors.blue('🎯 Swagger UI server started\n'));
+        console.log(colors.green(`✓ API Documentation: ${colors.blue(`http://${host}:${port}/api-docs`)}`));
+        console.log(colors.green(`✓ OpenAPI Spec JSON: ${colors.blue(`http://${host}:${port}/openapi.json`)}`));
+        console.log(colors.green(`✓ Health Check: ${colors.blue(`http://${host}:${port}/health`)}\n`));
+        console.log(colors.yellow('Press Ctrl+C to stop server\n'));
+      });
+
+      // Graceful shutdown handler
+      process.on('SIGINT', () => {
+        console.log('\n' + colors.yellow('👋 Shutting down server...\n'));
+        server.close(() => {
+          console.log(colors.green('✓ Server stopped\n'));
+          process.exit(0);
+        });
+
+        // Force exit if server doesn't close within 5 seconds
+        setTimeout(() => {
+          console.error(colors.red('✗ Server did not shut down gracefully, forcing exit\n'));
+          process.exit(1);
+        }, 5000);
+      });
+
+      // Handle server errors
+      server.on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+          console.error(colors.red(`✗ Port ${port} is already in use`));
+          console.error(colors.yellow(`Try using a different port: npx express-swagger-auto serve --port ${port + 1}\n`));
+        } else {
+          console.error(colors.red(`✗ Server error: ${error.message}\n`));
+        }
+        process.exit(1);
+      });
     } catch (error) {
       console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
