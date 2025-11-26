@@ -6,7 +6,18 @@ This document outlines the vision and planned phases for express-swagger-auto. O
 
 **Phase 6: Documentation & Examples** - In Progress
 
-Phase 5 (Release Preparation) completed successfully. The package v0.2.3 is published on npm with full documentation, CI/CD, and community infrastructure. Now focusing on expanded documentation and additional examples.
+Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway with major CLI enhancements delivered.
+
+### ✨ Recent CLI Enhancements (November 2025)
+
+- **Config file support** via cosmiconfig (JS, JSON, YAML formats)
+- **YAML output format** with auto-detection from file extension
+- **CI mode** with JSON and SARIF output formats
+- **`init` command** for interactive project setup
+- **Strategy selection** (`--strategies jsdoc,decorator,runtime`)
+- **Route filtering** (`--include-paths`, `--exclude-paths`, `--tags`)
+- **Full OpenAPI validation** with strict mode and security audit
+- **322 tests passing** with comprehensive coverage
 
 ## Phases Overview
 
@@ -40,20 +51,26 @@ Phase 5 (Release Preparation) completed successfully. The package v0.2.3 is publ
 - Example and type inference engine
 - Response schema generation from return types
 - Automatic security scheme detection
+- TypeInferenceEngine for TypeScript type parsing
 
-**Status**: Complete - 152 tests passing (+92)
+**Status**: Complete - 302 tests passing
 
 ### ✅ Phase 4: Production Polish (Completed)
 **Focus**: CLI, performance, and developer experience
 
-- Full-featured CLI (generate, validate, serve, migrate)
+- Full-featured CLI (generate, validate, serve, migrate, init)
 - File watching with hot reload capability
 - SecurityDetector for automatic scheme identification
 - Performance optimization (<50ms for 100 routes)
 - Comprehensive logging and debugging
 - Benchmark suite for regression detection
+- **Config file support** (cosmiconfig)
+- **YAML output format**
+- **CI mode with JSON/SARIF output**
+- **Route filtering and strategy selection**
+- **Full OpenAPI schema validation**
 
-**Status**: Complete - 191 tests passing (+39)
+**Status**: Complete - 322 tests passing
 
 ### ✅ Phase 5: Release Preparation (Completed)
 **Focus**: Community and publication readiness
@@ -75,7 +92,12 @@ Phase 5 (Release Preparation) completed successfully. The package v0.2.3 is publ
 ### 🚀 Phase 6: Documentation & Examples (Current)
 **Focus**: Comprehensive guides and real-world examples
 
-**Planned Features:**
+**Completed:**
+- [x] CLI documentation (docs/CLI.md) - Updated with new features
+- [x] `init` command for quick project setup
+- [x] Example route generation with JSDoc annotations
+
+**In Progress:**
 - Docs site with dedicated domain
 - Migration guides (Swagger 2.0 → OpenAPI 3.1)
 - Integration guides (GitHub Actions, Docker, CI/CD)
@@ -94,8 +116,8 @@ Phase 5 (Release Preparation) completed successfully. The package v0.2.3 is publ
 **Focus**: Enterprise and advanced use cases
 
 **Planned Features:**
-- **Schema Evolution**: Track breaking changes between versions
-- **Mock Server**: Generate functioning mock servers from specs
+- **Schema Evolution**: Track breaking changes between versions (`diff` command)
+- **Mock Server**: Generate functioning mock servers from specs (`mock` command)
 - **API Testing**: Generate integration tests from operations
 - **Server-side Validation**: Generate validators from OpenAPI specs
 - **Documentation Generation**: Auto-generate API docs from specs

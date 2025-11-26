@@ -34,6 +34,10 @@ export { JoiAdapter } from './validators/JoiAdapter';
 export { YupAdapter } from './validators/YupAdapter';
 export { ValidatorRegistry, validatorRegistry } from './validators/ValidatorRegistry';
 
+// Config
+export { ConfigLoader } from './config/ConfigLoader';
+export type { SwaggerAutoConfig } from './config/ConfigLoader';
+
 // Middleware
 export { runtimeCapture } from './middleware/runtimeCapture';
 export { createSwaggerUIMiddleware } from './middleware/swaggerUI';
