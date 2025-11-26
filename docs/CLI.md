@@ -23,8 +23,10 @@ Then use via npm scripts:
 ```json
 {
   "scripts": {
-    "generate:api-docs": "express-swagger-auto generate",
-    "validate:api-docs": "express-swagger-auto validate ./openapi.json"
+    "swagger:generate": "express-swagger-auto generate",
+    "swagger:validate": "express-swagger-auto validate ./openapi.yaml",
+    "swagger:watch": "express-swagger-auto generate --watch",
+    "swagger:serve": "express-swagger-auto serve"
   }
 }
 ```
@@ -36,7 +38,123 @@ npm install --global express-swagger-auto
 express-swagger-auto generate
 ```
 
+## Quick Start
+
+The fastest way to get started is using the `init` command:
+
+```bash
+npx express-swagger-auto init
+```
+
+This will interactively guide you through setup, creating a config file and example routes.
+
+## Configuration
+
+### Config File Support
+
+express-swagger-auto supports multiple config file formats via [cosmiconfig](https://github.com/davidtheclark/cosmiconfig):
+
+- `swagger-auto.config.js` (recommended)
+- `.swagger-autorc.json`
+- `.swagger-autorc.yaml` / `.swagger-autorc.yml`
+- `package.json` `"swaggerAuto"` key
+
+#### Example Config (JavaScript)
+
+```javascript
+// swagger-auto.config.js
+/** @type {import('express-swagger-auto').SwaggerAutoConfig} */
+module.exports = {
+  input: './src/app.ts',
+  output: './docs/openapi.yaml',
+  format: 'yaml',
+  strategies: ['jsdoc', 'decorator'],
+  info: {
+    title: 'My API',
+    version: '2.0.0',
+    description: 'Production API'
+  },
+  security: {
+    detect: true
+  },
+  watch: {
+    paths: ['src/**'],
+    ignored: ['node_modules', 'dist'],
+    debounce: 500
+  },
+  routes: {
+    include: ['/api/*'],
+    exclude: ['/internal/*']
+  },
+  ci: {
+    enabled: false,
+    outputFormat: 'json'
+  }
+};
+```
+
+#### Example Config (YAML)
+
+```yaml
+# .swagger-autorc.yaml
+input: ./src/app.ts
+output: ./docs/openapi.yaml
+format: yaml
+strategies:
+  - jsdoc
+  - decorator
+info:
+  title: My API
+  version: 2.0.0
+security:
+  detect: true
+```
+
 ## Commands
+
+### `init` - Initialize Project
+
+Creates a configuration file and optionally generates example routes with JSDoc annotations.
+
+#### Usage
+
+```bash
+express-swagger-auto init [options]
+```
+
+#### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-y, --yes` | Skip prompts and use defaults | `false` |
+| `--format <format>` | Config file format (js\|json\|yaml) | `js` |
+| `--example` | Generate example route file with JSDoc | `false` |
+
+#### Examples
+
+**Interactive setup:**
+
+```bash
+express-swagger-auto init
+```
+
+**Non-interactive with defaults:**
+
+```bash
+express-swagger-auto init --yes --example
+```
+
+#### What It Creates
+
+1. **Config file** (`swagger-auto.config.js` or chosen format)
+2. **Example routes** (optional) with JSDoc annotations
+3. **npm scripts** in `package.json`:
+   - `swagger:generate`
+   - `swagger:watch`
+   - `swagger:serve`
+   - `swagger:validate`
+
+---
 
 ### `generate` - Generate OpenAPI Specification
 
@@ -52,38 +170,50 @@ express-swagger-auto generate [options]
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
+| `--config` | `-c` | Path to config file | Auto-detected |
 | `--input` | `-i` | Entry point file (Express app) | `./src/app.ts` |
 | `--output` | `-o` | Output path for OpenAPI spec | `./openapi.json` |
-| `--watch` | `-w` | Watch mode - regenerate on file changes | `false` |
+| `--format` | `-f` | Output format (json\|yaml) | Auto from extension |
+| `--watch` | `-w` | Watch mode - regenerate on changes | `false` |
 | `--title` | | API title | From package.json |
 | `--version` | | API version | From package.json |
 | `--description` | | API description | `''` |
+| `--strategies` | | Generation strategies | `jsdoc,decorator` |
+| `--include-paths` | | Include only paths matching patterns | All paths |
+| `--exclude-paths` | | Exclude paths matching patterns | None |
+| `--tags` | | Include only routes with tags | All tags |
+| `--ci` | | CI mode: JSON output, no colors | `false` |
+| `--ci-format` | | CI output format (text\|json\|sarif) | `text` |
 
 #### Examples
 
-**Basic generation:**
+**Basic generation with config file:**
 
 ```bash
 express-swagger-auto generate
 ```
 
-This assumes your Express app is at `./src/app.ts` and outputs to `./openapi.json`.
-
-**With custom paths:**
+**Generate YAML output:**
 
 ```bash
-express-swagger-auto generate \
-  --input ./src/server.js \
-  --output ./api-spec.json
+express-swagger-auto generate -o openapi.yaml
+# or
+express-swagger-auto generate --format yaml
 ```
 
-**With API metadata:**
+**Filter routes:**
 
 ```bash
 express-swagger-auto generate \
-  --title "My API" \
-  --version "2.0.0" \
-  --description "Production API with full docs"
+  --include-paths "/api/*" "/v1/*" \
+  --exclude-paths "/internal/*" \
+  --tags "public" "users"
+```
+
+**CI/CD pipeline:**
+
+```bash
+express-swagger-auto generate --ci --ci-format json
 ```
 
 **Watch mode (development):**
@@ -92,87 +222,23 @@ express-swagger-auto generate \
 express-swagger-auto generate --watch
 ```
 
-This regenerates the spec whenever files change. Perfect for development workflows with automatic spec updates.
+#### Generation Strategies
 
-#### How it Works
+Control how metadata is extracted:
 
-The `generate` command:
-1. **Loads your Express app** dynamically from the input file
-2. **Discovers all routes** by analyzing the router stack
-3. **Extracts metadata** from decorators, JSDoc comments, and validators
-4. **Generates OpenAPI spec** combining all discovered information
-5. **Writes to file** in JSON format (pretty-printed for readability)
-6. **Reports statistics** showing routes found and spec size
+- `jsdoc` - Extract from JSDoc comments (recommended)
+- `decorator` - Extract from TypeScript decorators
+- `runtime` - Capture from actual request/response (opt-in)
 
-#### App Entry Point Requirements
-
-Your entry point file must:
-- Export the Express application as the default export or module.exports
-- Be either compiled JavaScript (.js) or TypeScript (.ts that gets transpiled)
-
-**Example app file:**
-
-```typescript
-// src/app.ts
-import express from 'express';
-import { UserRouter } from './routes/users';
-
-const app = express();
-
-app.use(express.json());
-app.use('/users', UserRouter);
-
-export default app;
+```bash
+express-swagger-auto generate --strategies jsdoc decorator
 ```
 
-Or CommonJS:
-
-```javascript
-// src/app.js
-const express = require('express');
-const { UserRouter } = require('./routes/users');
-
-const app = express();
-app.use(express.json());
-app.use('/users', UserRouter);
-
-module.exports = app;
-```
-
-#### Output Format
-
-The generated `openapi.json` follows OpenAPI 3.1.0 specification:
-
-```json
-{
-  "openapi": "3.1.0",
-  "info": {
-    "title": "My API",
-    "version": "1.0.0",
-    "description": "My API description"
-  },
-  "paths": {
-    "/users": {
-      "get": {
-        "summary": "Get all users",
-        "operationId": "get_users",
-        "responses": {
-          "200": {
-            "description": "Successful response"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {}
-  }
-}
-```
+---
 
 ### `validate` - Validate OpenAPI Specification
 
-Validates your OpenAPI specification file against the OpenAPI schema and reports issues.
+Validates your OpenAPI specification against the OpenAPI schema and reports issues.
 
 #### Usage
 
@@ -184,70 +250,103 @@ express-swagger-auto validate <specPath> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `<specPath>` | Path to OpenAPI spec file (required) |
+| `<specPath>` | Path to OpenAPI spec file (JSON or YAML) |
 
 #### Options
 
-| Option | Short | Description |
-|--------|-------|-------------|
-| `--strict` | | Enable strict validation mode |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--strict` | Enable strict validation (operationId, tags, descriptions) | `false` |
+| `--ci` | CI mode: no colors, structured output | `false` |
+| `--ci-format` | CI output format (text\|json\|sarif) | `text` |
+| `--fail-on-warnings` | Exit with error code on warnings | `false` |
+| `--security-audit` | Check for security best practices | `false` |
 
 #### Examples
 
 **Basic validation:**
 
 ```bash
-express-swagger-auto validate ./openapi.json
+express-swagger-auto validate ./openapi.yaml
 ```
 
-**Strict validation (upcoming feature):**
+**Strict validation (recommended for CI):**
 
 ```bash
-express-swagger-auto validate ./openapi.json --strict
+express-swagger-auto validate ./openapi.yaml --strict --fail-on-warnings
+```
+
+**Security audit:**
+
+```bash
+express-swagger-auto validate ./openapi.yaml --security-audit
+```
+
+**CI with JSON output:**
+
+```bash
+express-swagger-auto validate ./openapi.yaml --ci --ci-format json
+```
+
+**SARIF output for code quality tools:**
+
+```bash
+express-swagger-auto validate ./openapi.yaml --ci --ci-format sarif
 ```
 
 #### What It Checks
 
-The validator ensures:
-- ✅ Valid JSON format
-- ✅ Required OpenAPI fields present (openapi, info, paths)
+**Basic validation:**
+- ✅ Valid JSON/YAML format
+- ✅ Required OpenAPI fields (openapi, info, paths)
 - ✅ Info object has title and version
-- ✅ Paths object is valid
+- ✅ OpenAPI version is 3.x
+
+**Strict mode (`--strict`):**
+- ✅ All operations have operationId
+- ✅ No duplicate operationIds
 - ✅ All operations have responses
-- ✅ No duplicate operation IDs
+- ✅ All operations have summary or description
+- ✅ All operations have tags
+- ✅ All $ref references resolve
 
-#### Success Output
+**Security audit (`--security-audit`):**
+- ✅ Security schemes are defined
+- ✅ Operations have security requirements
+- ✅ Sensitive endpoints are protected
 
+#### CI Output Formats
+
+**JSON format:**
+```json
+{
+  "success": true,
+  "specPath": "./openapi.yaml",
+  "openapi": "3.0.0",
+  "title": "My API",
+  "version": "1.0.0",
+  "paths": 5,
+  "operations": 12,
+  "errors": [],
+  "warnings": [],
+  "duration": 23
+}
 ```
-🔍 Validating OpenAPI specification...
 
-✓ Validation passed!
-
-  OpenAPI Version: 3.1.0
-  Title: My API
-  Version: 1.0.0
-  Paths: 5
-  Operations: 12
-
-✅ Done!
+**SARIF format** (for GitHub Code Scanning, SonarQube, etc.):
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/...",
+  "version": "2.1.0",
+  "runs": [...]
+}
 ```
 
-#### Error Output
-
-```
-🔍 Validating OpenAPI specification...
-
-✗ Validation failed:
-
-  • Missing required field: info.title
-  • Missing required field: paths
-
-(exit code: 1)
-```
+---
 
 ### `serve` - Serve Swagger UI
 
-Serves a Swagger UI instance for your OpenAPI specification.
+Serves a standalone Swagger UI instance for your OpenAPI specification.
 
 #### Usage
 
@@ -261,6 +360,7 @@ express-swagger-auto serve [options]
 |--------|-------|-------------|---------|
 | `--spec` | `-s` | OpenAPI spec file | `./openapi.json` |
 | `--port` | `-p` | Port number | `3000` |
+| `--host` | | Host address | `localhost` |
 
 #### Examples
 
@@ -269,30 +369,20 @@ express-swagger-auto serve
 ```
 
 ```bash
-express-swagger-auto serve --port 8080 --spec ./api-spec.json
+express-swagger-auto serve --port 8080 --spec ./docs/openapi.yaml
 ```
 
-#### Note
+#### Endpoints
 
-The `serve` command is a stub implementation. For now, you can serve Swagger UI using:
+- `/api-docs` - Swagger UI interface
+- `/openapi.json` - Raw spec JSON
+- `/health` - Health check endpoint
 
-1. **Use the middleware** in your Express app:
-
-```typescript
-import express from 'express';
-import swaggerUi from 'swagger-ui-express';
-import spec from './openapi.json' assert { type: 'json' };
-
-const app = express();
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(spec));
-app.listen(3000);
-```
-
-2. **Use Swagger Editor** - Upload your JSON spec online
+---
 
 ### `migrate` - Migrate from Other Tools
 
-Migrate existing OpenAPI configurations from other tools to express-swagger-auto format.
+Migrate existing OpenAPI configurations from other tools.
 
 #### Usage
 
@@ -300,106 +390,65 @@ Migrate existing OpenAPI configurations from other tools to express-swagger-auto
 express-swagger-auto migrate <source> [options]
 ```
 
-#### Arguments
+#### Supported Sources
 
-| Argument | Description | Supported |
-|----------|-------------|-----------|
-| `swagger-jsdoc` | Migrate from swagger-jsdoc | 🔜 Planned |
-| `tsoa` | Migrate from tsoa | 🔜 Planned |
-| `express-oas-generator` | Migrate from express-oas-generator | 🔜 Planned |
+| Source | Status |
+|--------|--------|
+| `swagger-jsdoc` | 🔜 Planned |
+| `tsoa` | 🔜 Planned |
+| `express-oas-generator` | 🔜 Planned |
 
-#### Examples
+---
 
-```bash
-express-swagger-auto migrate swagger-jsdoc
-```
+## CI/CD Integration
 
-#### Note
-
-The `migrate` command is a stub implementation. Full migration support is planned for a future release.
-
-## Global Options
-
-### `--help` / `-h`
-
-Display help information.
-
-```bash
-express-swagger-auto --help
-express-swagger-auto generate --help
-```
-
-### `--version` / `-v`
-
-Display CLI version.
-
-```bash
-express-swagger-auto --version
-```
-
-## Integration Examples
-
-### npm Scripts
-
-```json
-{
-  "scripts": {
-    "dev": "nodemon src/app.ts",
-    "build": "tsc",
-    "docs:generate": "express-swagger-auto generate",
-    "docs:validate": "express-swagger-auto validate ./openapi.json",
-    "docs:watch": "express-swagger-auto generate --watch",
-    "prestart": "npm run docs:generate"
-  }
-}
-```
-
-### GitHub Actions CI/CD
+### GitHub Actions
 
 ```yaml
-name: API Docs
+name: API Documentation
 
 on: [push, pull_request]
 
 jobs:
-  generate:
+  docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - run: npm install
+          node-version: '20'
+      
+      - run: npm ci
       - run: npm run build
-      - run: npx express-swagger-auto generate
-      - run: npx express-swagger-auto validate ./openapi.json
-      - uses: EndBug/add-and-commit@v9
+      
+      # Generate spec
+      - run: npx express-swagger-auto generate --ci --ci-format json
+      
+      # Validate with strict mode
+      - run: npx express-swagger-auto validate ./openapi.yaml --strict --fail-on-warnings --ci
+      
+      # Security audit
+      - run: npx express-swagger-auto validate ./openapi.yaml --security-audit --ci --ci-format sarif > results.sarif
+      
+      # Upload SARIF for GitHub Code Scanning
+      - uses: github/codeql-action/upload-sarif@v2
         with:
-          message: 'docs: update API specification'
-          add: 'openapi.json'
+          sarif_file: results.sarif
 ```
 
-### Docker
+### GitLab CI
 
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
-
-COPY . .
-
-# Build app
-RUN npm run build
-
-# Generate API docs
-RUN npx express-swagger-auto generate --output /app/public/openapi.json
-
-EXPOSE 3000
-
-CMD ["npm", "start"]
+```yaml
+api-docs:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+    - npx express-swagger-auto generate --ci
+    - npx express-swagger-auto validate ./openapi.yaml --strict --fail-on-warnings
+  artifacts:
+    paths:
+      - openapi.yaml
 ```
 
 ### Pre-commit Hook
@@ -409,14 +458,14 @@ CMD ["npm", "start"]
 # .git/hooks/pre-commit
 
 npx express-swagger-auto generate
-npx express-swagger-auto validate ./openapi.json
+npx express-swagger-auto validate ./openapi.yaml --strict
 
 if [ $? -ne 0 ]; then
   echo "API spec validation failed. Commit aborted."
   exit 1
 fi
 
-git add openapi.json
+git add openapi.yaml
 ```
 
 ## Error Handling
