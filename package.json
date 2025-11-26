@@ -1,6 +1,6 @@
 {
   "name": "express-swagger-auto",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Hybrid OpenAPI 3.x generator for Express.js - zero-config decorators, JSDoc, and runtime capture",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
