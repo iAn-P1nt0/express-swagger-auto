@@ -8,6 +8,7 @@
  * - Graceful shutdown
  */
 
+/* eslint-disable no-console */
 const chokidar = require('chokidar');
 import type { FSWatcher } from 'chokidar';
 
@@ -83,15 +84,15 @@ export class FileWatcher {
         },
       });
 
-      this.watcher.on('add', (path: string) => this.onFileChange('add', path));
-      this.watcher.on('change', (path: string) => this.onFileChange('change', path));
-      this.watcher.on('unlink', (path: string) => this.onFileChange('unlink', path));
+      this.watcher?.on('add', (path: string) => this.onFileChange('add', path));
+      this.watcher?.on('change', (path: string) => this.onFileChange('change', path));
+      this.watcher?.on('unlink', (path: string) => this.onFileChange('unlink', path));
 
-      this.watcher.on('error', (error: Error) => {
+      this.watcher?.on('error', (error: Error) => {
         console.error(`Watcher error: ${error.message}`);
       });
 
-      this.watcher.on('ready', () => {
+      this.watcher?.on('ready', () => {
         console.log('File watcher ready');
       });
     } finally {
@@ -147,7 +148,7 @@ export class FileWatcher {
    * Check if watcher is active
    */
   isWatching(): boolean {
-    return this.watcher !== null && !this.watcher.closed;
+    return this.watcher !== null && this.watcher !== undefined;
   }
 
   /**
