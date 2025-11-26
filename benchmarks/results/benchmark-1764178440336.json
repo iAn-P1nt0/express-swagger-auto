@@ -1,0 +1,132 @@
+{
+  "timestamp": "2025-11-26T17:34:00.336Z",
+  "version": "0.1.0",
+  "metrics": [
+    {
+      "routeCount": 10,
+      "routeDiscoveryTime": 0.026959000000005062,
+      "specGenerationTime": 0.03883400000000847,
+      "jsDocParsingTime": 0.003542000000010148,
+      "totalTime": 0.06933500000002368,
+      "memoryBefore": 13294240,
+      "memoryAfter": 13850432,
+      "memoryDelta": 556192
+    },
+    {
+      "routeCount": 50,
+      "routeDiscoveryTime": 0.0017499999999870397,
+      "specGenerationTime": 0.004291999999992413,
+      "jsDocParsingTime": 0.0061670000000049185,
+      "totalTime": 0.012208999999984371,
+      "memoryBefore": 13860896,
+      "memoryAfter": 12715008,
+      "memoryDelta": -1145888
+    },
+    {
+      "routeCount": 100,
+      "routeDiscoveryTime": 0.001333000000016682,
+      "specGenerationTime": 0.003916000000003805,
+      "jsDocParsingTime": 0.004208000000005541,
+      "totalTime": 0.009457000000026028,
+      "memoryBefore": 12718032,
+      "memoryAfter": 13072544,
+      "memoryDelta": 354512
+    },
+    {
+      "routeCount": 500,
+      "routeDiscoveryTime": 0.0024999999999977263,
+      "specGenerationTime": 0.005500000000012051,
+      "jsDocParsingTime": 0.018291999999973996,
+      "totalTime": 0.026291999999983773,
+      "memoryBefore": 13075568,
+      "memoryAfter": 20366224,
+      "memoryDelta": 7290656
+    }
+  ],
+  "results": [
+    {
+      "operation": "route-discovery",
+      "duration": 0.026959000000005062,
+      "memoryUsed": 0,
+      "routeCount": 10,
+      "timestamp": "2025-11-26T17:34:00.328Z"
+    },
+    {
+      "operation": "spec-generation",
+      "duration": 0.03883400000000847,
+      "memoryUsed": 190,
+      "routeCount": 10,
+      "timestamp": "2025-11-26T17:34:00.329Z"
+    },
+    {
+      "operation": "jsdoc-parsing",
+      "duration": 0.003542000000010148,
+      "memoryUsed": 0,
+      "routeCount": 10,
+      "timestamp": "2025-11-26T17:34:00.329Z"
+    },
+    {
+      "operation": "route-discovery",
+      "duration": 0.0017499999999870397,
+      "memoryUsed": 0,
+      "routeCount": 50,
+      "timestamp": "2025-11-26T17:34:00.330Z"
+    },
+    {
+      "operation": "spec-generation",
+      "duration": 0.004291999999992413,
+      "memoryUsed": 190,
+      "routeCount": 50,
+      "timestamp": "2025-11-26T17:34:00.330Z"
+    },
+    {
+      "operation": "jsdoc-parsing",
+      "duration": 0.0061670000000049185,
+      "memoryUsed": 0,
+      "routeCount": 50,
+      "timestamp": "2025-11-26T17:34:00.330Z"
+    },
+    {
+      "operation": "route-discovery",
+      "duration": 0.001333000000016682,
+      "memoryUsed": 0,
+      "routeCount": 100,
+      "timestamp": "2025-11-26T17:34:00.331Z"
+    },
+    {
+      "operation": "spec-generation",
+      "duration": 0.003916000000003805,
+      "memoryUsed": 190,
+      "routeCount": 100,
+      "timestamp": "2025-11-26T17:34:00.331Z"
+    },
+    {
+      "operation": "jsdoc-parsing",
+      "duration": 0.004208000000005541,
+      "memoryUsed": 0,
+      "routeCount": 100,
+      "timestamp": "2025-11-26T17:34:00.331Z"
+    },
+    {
+      "operation": "route-discovery",
+      "duration": 0.0024999999999977263,
+      "memoryUsed": 0,
+      "routeCount": 500,
+      "timestamp": "2025-11-26T17:34:00.336Z"
+    },
+    {
+      "operation": "spec-generation",
+      "duration": 0.005500000000012051,
+      "memoryUsed": 190,
+      "routeCount": 500,
+      "timestamp": "2025-11-26T17:34:00.336Z"
+    },
+    {
+      "operation": "jsdoc-parsing",
+      "duration": 0.018291999999973996,
+      "memoryUsed": 0,
+      "routeCount": 500,
+      "timestamp": "2025-11-26T17:34:00.336Z"
+    }
+  ]
+}
