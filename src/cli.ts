@@ -43,72 +43,19 @@ program
   .action(async function (options: any) {
     try {
       const generateSpec = async () => {
-        // Load Express app dynamically
+        // Load Express app dynamically with ESM/CommonJS fallback chain
         let app;
         const resolvedInput = path.resolve(options.input);
 
-        try {
-          delete require.cache[resolvedInput];
-          const module = require(resolvedInput);
-          app = module.default || module;
-        } catch (error) {
-          const errorMsg = (error as any).message || String(error);
+        // Try loading the app using a smart loader with multiple strategies
+        const loadResult = await loadApp(resolvedInput);
 
-          // Check for ES module or TypeScript-related errors
-          const isESModuleError =
-            errorMsg.includes('is not supported resolving ES modules') ||
-            errorMsg.includes('directory import') ||
-            errorMsg.includes('ERR_REQUIRE_ESM') ||
-            errorMsg.includes('Cannot use import statement outside a module') ||
-            (errorMsg.includes('Cannot find module') && options.input.endsWith('.ts'));
-
-          if (isESModuleError) {
-            console.error(colors.red('\n✗ ES Module or TypeScript Loading Error\n'));
-            console.error(colors.yellow('Your project uses ES modules (ESM) or TypeScript,'));
-            console.error(colors.yellow('but express-swagger-auto loads apps using CommonJS require().\n'));
-
-            // Check if build output exists
-            const commonBuildPaths = ['dist/index.js', 'build/index.js', 'lib/index.js'];
-            const existingBuild = commonBuildPaths.find(p => fs.existsSync(path.resolve(p)));
-
-            if (existingBuild) {
-              console.error(colors.green('✓ Found compiled output!\n'));
-              console.error(colors.yellow('SOLUTION:\n'));
-              console.error(colors.yellow(`1. Use the compiled output instead:`));
-              console.error(colors.yellow(`   npx express-swagger-auto generate -i ${existingBuild} -o openapi.json\n`));
-            } else {
-              console.error(colors.yellow('RECOMMENDED SOLUTION:\n'));
-              console.error(colors.yellow('1. Build your code first:'));
-              console.error(colors.yellow('   npm run build (or pnpm build / yarn build)\n'));
-              console.error(colors.yellow('2. Point to the compiled output:'));
-              console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js -o openapi.json\n`));
-            }
-
-            console.error(colors.yellow('AUTOMATION:\n'));
-            console.error(colors.yellow('Add to your package.json scripts:\n'));
-            console.error(colors.yellow('   "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json"\n'));
-
-            console.error(colors.yellow('ALTERNATIVE (if using pure CommonJS):\n'));
-            console.error(colors.yellow('Ensure your entry file uses CommonJS require() for all imports:'));
-            console.error(colors.yellow('   const middlewares = require("./middlewares");\n'));
-            return false;
-          }
-
-          // Check for other module-related errors
-          if (errorMsg.includes('Cannot find module') || errorMsg.includes('ENOENT')) {
-            console.error(colors.red(`\n✗ Failed to load Express app:\n`));
-            console.error(colors.yellow(`  Error: ${errorMsg}\n`));
-            console.error(colors.yellow('Solutions:\n'));
-            console.error(colors.yellow(`1. Verify the input file exists: ${resolvedInput}`));
-            console.error(colors.yellow('2. Use correct relative or absolute paths'));
-            console.error(colors.yellow('3. Check that all dependencies are installed (npm install)'));
-            console.error(colors.yellow('4. If using TypeScript, compile first (npm run build)\n'));
-            return false;
-          }
-
-          console.error(colors.red(`✗ Failed to load Express app: ${errorMsg}`));
+        if (!loadResult.success) {
+          displayLoadError(loadResult.error, resolvedInput);
           return false;
         }
+
+        app = loadResult.app;
 
         // Get API info
         const apiInfo = {
@@ -341,6 +288,151 @@ program
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
+
+/**
+ * Smart app loader that tries multiple strategies:
+ * 1. Dynamic import (ESM) for .js and .mjs files
+ * 2. CommonJS require() for .js, .cjs files
+ * 3. Fallback to compiled output if original fails
+ */
+async function loadApp(inputPath: string): Promise<{ success: boolean; app?: any; error?: any }> {
+  const isTypeScriptFile = inputPath.endsWith('.ts');
+  const fileExtension = path.extname(inputPath);
+
+  // First, try to load the file as-is
+
+  // Strategy 1: Try CommonJS require (works for .js, .cjs)
+  if (fileExtension === '.js' || fileExtension === '.cjs' || isTypeScriptFile) {
+    try {
+      delete require.cache[inputPath];
+      const module = require(inputPath);
+      const app = module.default || module;
+      if (app && typeof app === 'object' && app.use) {
+        return { success: true, app };
+      }
+    } catch (error) {
+      const errorMsg = String((error as any).message || error);
+
+      // If it's an ESM error, try dynamic import
+      const isESModuleError =
+        errorMsg.includes('ERR_REQUIRE_ESM') ||
+        errorMsg.includes('is not supported resolving ES modules') ||
+        errorMsg.includes('directory import') ||
+        errorMsg.includes('Cannot use import statement outside a module');
+
+      if (isESModuleError) {
+        // Strategy 2: Try ESM dynamic import
+        try {
+          const fileUrl = `file://${inputPath}`;
+          const imported = await import(fileUrl);
+          const app = imported.default || imported;
+          if (app && typeof app === 'object' && app.use) {
+            return { success: true, app };
+          }
+        } catch (importError) {
+          // ESM import also failed, continue to fallback
+        }
+      }
+
+      // Store the error for later use
+      const firstError = { message: errorMsg, isESModule: isESModuleError };
+
+      // Strategy 3: Try to find and load compiled output
+      const compiledPath = await findCompiledOutput(inputPath);
+      if (compiledPath) {
+        try {
+          delete require.cache[compiledPath];
+          const module = require(compiledPath);
+          const app = module.default || module;
+          if (app && typeof app === 'object' && app.use) {
+            console.log(colors.green(`✓ Loaded compiled output from: ${compiledPath}\n`));
+            return { success: true, app };
+          }
+        } catch (compiledError) {
+          // Compiled version also failed
+        }
+      }
+
+      // All strategies failed
+      return { success: false, error: firstError };
+    }
+  }
+
+  // If we get here, the file couldn't be loaded
+  return {
+    success: false,
+    error: {
+      message: `Unable to load file: ${inputPath}`,
+      isESModule: false,
+    },
+  };
+}
+
+/**
+ * Find compiled output file if the input is a source file
+ */
+async function findCompiledOutput(inputPath: string): Promise<string | null> {
+  // Map source files to potential compiled locations
+  const fileName = path.basename(inputPath);
+  const nameWithoutExt = path.parse(fileName).name;
+
+  const commonBuildPaths = [
+    path.join('dist', nameWithoutExt + '.js'),
+    path.join('build', nameWithoutExt + '.js'),
+    path.join('lib', nameWithoutExt + '.js'),
+    path.join('dist', 'index.js'),
+    path.join('build', 'index.js'),
+    path.join('lib', 'index.js'),
+  ];
+
+  for (const buildPath of commonBuildPaths) {
+    const resolvedPath = path.resolve(buildPath);
+    if (fs.existsSync(resolvedPath)) {
+      return resolvedPath;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Display a helpful error message with solutions
+ */
+function displayLoadError(error: any, resolvedInput: string) {
+  const errorMsg = error.message || String(error);
+  const isESModuleError = error.isESModule || false;
+
+  if (isESModuleError) {
+    console.error(colors.red('\n✗ ES Module or TypeScript Loading Error\n'));
+    console.error(colors.yellow('Your project uses ES modules (ESM) or TypeScript,'));
+    console.error(colors.yellow('and express-swagger-auto tried both ESM and CommonJS loading.\n'));
+  } else if (errorMsg.includes('Cannot find module') || errorMsg.includes('ENOENT')) {
+    console.error(colors.red(`\n✗ Failed to load Express app:\n`));
+    console.error(colors.yellow(`  Error: ${errorMsg}\n`));
+  } else {
+    console.error(colors.red(`✗ Failed to load Express app:`));
+    console.error(colors.yellow(`  ${errorMsg}\n`));
+  }
+
+  console.error(colors.yellow('SOLUTIONS:\n'));
+  console.error(colors.yellow('1. Build your TypeScript/ESM code first:'));
+  console.error(colors.yellow('   npm run build (or pnpm build / yarn build)\n'));
+  console.error(colors.yellow('2. Point to the compiled output:'));
+  console.error(colors.yellow('   npx express-swagger-auto generate -i dist/index.js -o openapi.json\n'));
+
+  console.error(colors.yellow('3. For CommonJS projects, ensure your entry file uses require():'));
+  console.error(colors.yellow('   const express = require("express");'));
+  console.error(colors.yellow('   const app = express();'));
+  console.error(colors.yellow('   module.exports = app;\n'));
+
+  console.error(colors.yellow('4. Add automation to package.json:'));
+  console.error(colors.yellow('   "scripts": {'));
+  console.error(colors.yellow('     "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json"'));
+  console.error(colors.yellow('   }\n'));
+
+  console.error(colors.yellow('5. File location checked:'));
+  console.error(colors.yellow(`   ${resolvedInput}\n`));
+}
 
 function getPackageTitle() {
   try {
