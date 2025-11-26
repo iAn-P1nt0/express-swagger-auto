@@ -45,40 +45,64 @@ program
       const generateSpec = async () => {
         // Load Express app dynamically
         let app;
+        const resolvedInput = path.resolve(options.input);
+
         try {
-          delete require.cache[path.resolve(options.input)];
-          const module = require(path.resolve(options.input));
+          delete require.cache[resolvedInput];
+          const module = require(resolvedInput);
           app = module.default || module;
         } catch (error) {
           const errorMsg = (error as any).message || String(error);
 
-          // Check for ES module directory import error
-          if (errorMsg.includes('is not supported resolving ES modules') || errorMsg.includes('directory import')) {
-            console.error(colors.red('\n✗ ES Module or Directory Import Error\n'));
-            console.error(colors.yellow('Your project uses ES modules (ESM) or has directory imports,'));
+          // Check for ES module or TypeScript-related errors
+          const isESModuleError =
+            errorMsg.includes('is not supported resolving ES modules') ||
+            errorMsg.includes('directory import') ||
+            errorMsg.includes('ERR_REQUIRE_ESM') ||
+            errorMsg.includes('Cannot use import statement outside a module') ||
+            (errorMsg.includes('Cannot find module') && options.input.endsWith('.ts'));
+
+          if (isESModuleError) {
+            console.error(colors.red('\n✗ ES Module or TypeScript Loading Error\n'));
+            console.error(colors.yellow('Your project uses ES modules (ESM) or TypeScript,'));
             console.error(colors.yellow('but express-swagger-auto loads apps using CommonJS require().\n'));
-            console.error(colors.yellow('RECOMMENDED SOLUTION:\n'));
-            console.error(colors.yellow('1. Build your Babel/TypeScript/ESM code first:'));
-            console.error(colors.yellow('   npm run build\n'));
-            console.error(colors.yellow('2. Point to the compiled output:'));
-            console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js -o openapi.json ...\n`));
-            console.error(colors.yellow('ALTERNATIVE SOLUTIONS:\n'));
-            console.error(colors.yellow('3. Add to package.json scripts for automation:'));
-            console.error(colors.yellow('   "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json --title \\"My API\\""\n'));
-            console.error(colors.yellow('4. Ensure your entry file uses CommonJS require() for all imports:'));
+
+            // Check if build output exists
+            const commonBuildPaths = ['dist/index.js', 'build/index.js', 'lib/index.js'];
+            const existingBuild = commonBuildPaths.find(p => fs.existsSync(path.resolve(p)));
+
+            if (existingBuild) {
+              console.error(colors.green('✓ Found compiled output!\n'));
+              console.error(colors.yellow('SOLUTION:\n'));
+              console.error(colors.yellow(`1. Use the compiled output instead:`));
+              console.error(colors.yellow(`   npx express-swagger-auto generate -i ${existingBuild} -o openapi.json\n`));
+            } else {
+              console.error(colors.yellow('RECOMMENDED SOLUTION:\n'));
+              console.error(colors.yellow('1. Build your code first:'));
+              console.error(colors.yellow('   npm run build (or pnpm build / yarn build)\n'));
+              console.error(colors.yellow('2. Point to the compiled output:'));
+              console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js -o openapi.json\n`));
+            }
+
+            console.error(colors.yellow('AUTOMATION:\n'));
+            console.error(colors.yellow('Add to your package.json scripts:\n'));
+            console.error(colors.yellow('   "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json"\n'));
+
+            console.error(colors.yellow('ALTERNATIVE (if using pure CommonJS):\n'));
+            console.error(colors.yellow('Ensure your entry file uses CommonJS require() for all imports:'));
             console.error(colors.yellow('   const middlewares = require("./middlewares");\n'));
             return false;
           }
 
           // Check for other module-related errors
-          if (errorMsg.includes('directory import') || errorMsg.includes('Cannot find module')) {
+          if (errorMsg.includes('Cannot find module') || errorMsg.includes('ENOENT')) {
             console.error(colors.red(`\n✗ Failed to load Express app:\n`));
             console.error(colors.yellow(`  Error: ${errorMsg}\n`));
             console.error(colors.yellow('Solutions:\n'));
-            console.error(colors.yellow('1. Ensure the input file exists and is readable'));
-            console.error(colors.yellow('2. Use absolute or relative paths from current working directory'));
-            console.error(colors.yellow('3. If using TypeScript, ensure it\'s compiled to JavaScript first'));
-            console.error(colors.yellow('4. For ES modules, point to the compiled/built version\n'));
+            console.error(colors.yellow(`1. Verify the input file exists: ${resolvedInput}`));
+            console.error(colors.yellow('2. Use correct relative or absolute paths'));
+            console.error(colors.yellow('3. Check that all dependencies are installed (npm install)'));
+            console.error(colors.yellow('4. If using TypeScript, compile first (npm run build)\n'));
             return false;
           }
 
