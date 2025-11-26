@@ -1,0 +1,108 @@
+name: Bug Report
+description: Report a bug in express-swagger-auto
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill out the form below with as much detail as possible.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area of express-swagger-auto does this bug affect?
+      options:
+        - CLI
+        - Route Discovery
+        - Spec Generation
+        - Security Detection
+        - File Watching
+        - Decorators
+        - JSDoc Parsing
+        - Validators (Zod/Joi/Yup)
+        - Middleware
+        - Documentation
+        - Other
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is
+      placeholder: "When I do X, I expect Y but I get Z instead"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction Steps
+      description: Detailed steps to reproduce the issue
+      placeholder: |
+        1. Create a file called `app.ts` with...
+        2. Run command...
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: "The spec should be generated with X properties"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened (include error messages)
+      placeholder: |
+        Error: Cannot find module...
+        TypeError: undefined is not a function
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your development environment
+      placeholder: |
+        - OS: macOS 12.6
+        - Node: 18.12.0
+        - npm/pnpm: pnpm 7.30.0
+        - Express: 4.18.2
+        - TypeScript: 5.0.0 (if using)
+      value: |
+        - OS:
+        - Node version:
+        - Package manager:
+        - Express version:
+        - TypeScript version (if applicable):
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: "I was trying to... but ran into this issue"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've searched for existing issues
+          required: true
+        - label: I've tried to reproduce with the latest version
+          required: true
+        - label: I've included all relevant environment details
+          required: true

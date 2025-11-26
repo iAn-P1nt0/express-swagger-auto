@@ -1,0 +1,94 @@
+name: Feature Request
+description: Suggest an enhancement or new feature for express-swagger-auto
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to suggest a feature! Please fill out the form below with as much detail as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Describe the problem or limitation you're facing
+      placeholder: "Currently, I can't... which makes it difficult to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe what you'd like to see implemented
+      placeholder: |
+        1. Add a new `--format` option to the generate command
+        2. This would allow users to choose between OpenAPI 3.0 and 3.1
+        3. Example usage: `npx express-swagger-auto generate --format 3.0`
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches
+      description: Have you considered other ways to solve this?
+      placeholder: "Alternative 1: ...\nAlternative 2: ..."
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area of express-swagger-auto would this affect?
+      options:
+        - CLI
+        - Route Discovery
+        - Spec Generation
+        - Security Detection
+        - File Watching
+        - Decorators
+        - JSDoc Parsing
+        - Validators (Zod/Joi/Yup)
+        - Middleware
+        - Documentation
+        - Other
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this feature?
+      options:
+        - Low (nice-to-have)
+        - Medium (would be useful)
+        - High (blocking a use case)
+        - Critical (blocking production)
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example Use Case
+      description: Real-world example of how you'd use this feature
+      placeholder: |
+        I have a legacy Express app with 500+ routes and need to generate specs in OpenAPI 3.0 format for compatibility with older tooling. Currently, I'm forced to use 3.1.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: "Related to issue #123, similar to how library X handles this..."
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I've searched for existing feature requests
+          required: true
+        - label: This feature aligns with the project roadmap
+          required: false
+        - label: I'm willing to help implement this
+          required: false
