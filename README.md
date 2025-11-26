@@ -16,6 +16,29 @@ Automatically generate OpenAPI 3.0/3.1 specifications and Swagger UI from Expres
 - **Performance Optimized**: <50ms generation for 100-route apps
 - **Security First**: Automatic masking of sensitive fields in runtime capture
 
+## Recent Refactoring (v0.3.0 Beta)
+
+The codebase is currently undergoing a comprehensive refactoring to add:
+
+### ✅ Phase 1: Enhanced Route Discovery
+- **MiddlewareAnalyzer**: Detects authentication guards, validation, error handling, CORS, logging
+- **PathParameterExtractor**: Extracts path parameters, query parameters, converts Express patterns to OpenAPI
+- **RouteMetadataEnricher**: Enriches routes with intelligent tags, operation IDs, examples, and security information
+
+### ✅ Phase 2: Schema Extraction
+- **JoiSchemaParser**: Parses Joi validation schemas and converts to OpenAPI format
+- **ControllerAnalyzer**: Analyzes controller functions to infer request/response schemas
+- **SchemaExtractor**: Orchestrates schema extraction from Joi validators, controllers, and JSDoc comments
+
+### 🚀 Coming Soon
+- **Phase 3**: Advanced parsing with TypeScript AST support and decorator handling
+- **Phase 4**: Integration into core RouteDiscovery and SpecGenerator
+- **Phase 5**: Complete test suite and production release
+
+See `REFACTORING_PLAN_v0.3.0.md` and `PHASE_2_SCHEMA_EXTRACTION.md` for detailed documentation.
+
+---
+
 ## Installation
 
 ```bash
