@@ -403,18 +403,61 @@ This refactoring provides a solid foundation for comprehensive API documentation
 
 The implementation is production-ready, well-tested, and designed specifically for the Bandhan microservices architecture.
 
+## Phase 2: Schema Extraction (NOW COMPLETE!)
+
+### New Components Implemented
+
+**JoiSchemaParser** (370 lines)
+- Parses Joi validation schemas and converts to OpenAPI
+- Supports Joi v15, v16, v17+ with describe() method
+- Extracts all validation rules: min, max, pattern, email, uuid, valid, etc.
+- Converts Express patterns to OpenAPI format
+- Generates realistic examples from schema
+
+**ControllerAnalyzer** (380 lines)
+- Analyzes controller functions to infer schemas
+- Extracts request body fields from parameter usage
+- Infers field types from validation patterns in code
+- Detects response schemas from return/res.json statements
+- Extracts error handling with specific status codes
+- Parses JSDoc @param and @returns annotations
+- Detects async/await and database queries
+
+**SchemaExtractor** (350 lines)
+- Orchestrates schema extraction from multiple sources
+- Intelligently merges Joi, controller, and JSDoc schemas
+- Assigns confidence scores based on available sources
+- Caches results for performance optimization
+- Generates example payloads from schemas
+- Validates schema completeness and quality
+
+### Benefits for Bandhan Services
+- Automatic documentation of Joi validators
+- Detection of request/response structures from code
+- Combination of multiple metadata sources
+- High confidence when using both Joi + JSDoc
+- No decorators required (works with legacy code)
+
+See `PHASE_2_SCHEMA_EXTRACTION.md` for detailed documentation.
+
+---
+
 ## Recommended Action Items
 
-1. ✅ Commit refactoring code to main branch
-2. ⏳ Create unit tests for all three new components
-3. ⏳ Integrate into RouteDiscovery and SpecGenerator
-4. ⏳ Test with 3-4 real Bandhan services
-5. ⏳ Create documentation and examples
-6. ⏳ Release as v0.3.0-beta
+1. ✅ Commit refactoring code to main branch (Phase 1)
+2. ✅ Implement Phase 2: Schema extraction (COMPLETE)
+3. ✅ Commit Phase 2 code to main branch
+4. ⏳ Create unit tests for Phase 1 & Phase 2 components
+5. ⏳ Integrate Phase 1 & Phase 2 into RouteDiscovery
+6. ⏳ Implement Phase 3: Advanced parsing & JSDoc integration
+7. ⏳ Test with 3-4 real Bandhan services
+8. ⏳ Release as v0.3.0-beta
 
 ---
 
 **Refactoring Started:** November 27, 2025
-**Components Completed:** 3/7
-**Lines of Code Added:** ~980
-**Status:** Phase 1 Complete, Ready for Integration
+**Phase 1 Completed:** November 27, 2025 (3 components, ~980 lines)
+**Phase 2 Completed:** November 27, 2025 (3 components, ~1,100 lines)
+**Components Completed:** 6/7
+**Lines of Code Added:** ~2,080
+**Status:** Phase 2 Complete, Ready for Testing & Integration

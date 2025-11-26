@@ -33,8 +33,7 @@ export class ControllerAnalyzer {
    * Analyze a controller function to extract schema information
    */
   analyzeController(
-    controllerCode: string,
-    functionName?: string
+    controllerCode: string
   ): ControllerSchema {
     const schema: ControllerSchema = {};
 
@@ -93,13 +92,6 @@ export class ControllerAnalyzer {
    * Infer request schema from parameter and code analysis
    */
   private inferRequestSchema(code: string, param: FunctionParameter): ControllerSchema['requestBody'] {
-    // Look for req.body access patterns
-    const bodyAccessPattern = new RegExp(
-      `${param.name}\\.body|req\\.body|request\\.body|body\\.\\w+`,
-      'g'
-    );
-
-    const accesses = code.match(bodyAccessPattern) || [];
     const schema: ControllerSchema['requestBody'] = {
       type: 'object',
       properties: {},
@@ -138,8 +130,6 @@ export class ControllerAnalyzer {
    * Infer field type from code context
    */
   private inferFieldType(code: string, fieldName: string): Record<string, any> {
-    const typeHints: Record<string, string> = {};
-
     // Look for validation patterns
     if (/\.email\(\)|isEmail|validateEmail/.test(code) && code.includes(fieldName)) {
       return { type: 'string', format: 'email' };
