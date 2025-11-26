@@ -321,10 +321,26 @@ async function loadApp(inputPath: string): Promise<{ success: boolean; app?: any
   if (fileExtension === '.js' || fileExtension === '.cjs' || isTypeScriptFile) {
     try {
       delete require.cache[inputPath];
-      const module = require(inputPath);
-      const app = module.default || module;
-      if (app && typeof app === 'object' && app.use) {
+      let loaded = require(inputPath);
+
+      // Try different export patterns
+      let app = loaded.default || loaded;
+
+      // Check if it has a .use method (Express apps can be functions with methods)
+      if (app && typeof app.use === 'function') {
         return { success: true, app };
+      }
+
+      // If it's a factory function (like createApp()), call it to get the app
+      if (typeof app === 'function' && !app.use) {
+        try {
+          app = app();
+          if (app && typeof app.use === 'function') {
+            return { success: true, app };
+          }
+        } catch {
+          // Factory function call failed, will handle in error catch below
+        }
       }
     } catch (error) {
       const errorMsg = String((error as any).message || error);
@@ -341,9 +357,23 @@ async function loadApp(inputPath: string): Promise<{ success: boolean; app?: any
         try {
           const fileUrl = `file://${inputPath}`;
           const imported = await import(fileUrl);
-          const app = imported.default || imported;
-          if (app && typeof app === 'object' && app.use) {
+          let app = imported.default || imported;
+
+          // Check if it has a .use method (Express apps can be functions with methods)
+          if (app && typeof app.use === 'function') {
             return { success: true, app };
+          }
+
+          // If it's a factory function (like createApp()), call it to get the app
+          if (typeof app === 'function' && !app.use) {
+            try {
+              app = app();
+              if (app && typeof app.use === 'function') {
+                return { success: true, app };
+              }
+            } catch {
+              // Factory function call failed, continue to fallback
+            }
           }
         } catch (importError) {
           // ESM import also failed, continue to fallback
@@ -363,11 +393,26 @@ async function loadApp(inputPath: string): Promise<{ success: boolean; app?: any
       if (compiledPath) {
         try {
           delete require.cache[compiledPath];
-          const module = require(compiledPath);
-          const app = module.default || module;
-          if (app && typeof app === 'object' && app.use) {
+          let loaded = require(compiledPath);
+          let app = loaded.default || loaded;
+
+          // Check if it has a .use method (Express apps can be functions with methods)
+          if (app && typeof app.use === 'function') {
             console.log(colors.green(`✓ Loaded compiled output from: ${compiledPath}\n`));
             return { success: true, app };
+          }
+
+          // If it's a factory function (like createApp()), call it to get the app
+          if (typeof app === 'function' && !app.use) {
+            try {
+              app = app();
+              if (app && typeof app.use === 'function') {
+                console.log(colors.green(`✓ Loaded compiled output from: ${compiledPath}\n`));
+                return { success: true, app };
+              }
+            } catch {
+              // Factory function call failed
+            }
           }
         } catch (compiledError) {
           // Compiled version also failed
