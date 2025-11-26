@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "express": "^4.18.0",
-    "express-swagger-auto": "file:../..",
+    "express-swagger-auto": "^0.1.0",
     "joi": "^17.11.0"
   }
 }
