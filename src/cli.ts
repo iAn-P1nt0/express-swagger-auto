@@ -53,16 +53,19 @@ program
           const errorMsg = (error as any).message || String(error);
 
           // Check for ES module directory import error
-          if (errorMsg.includes('is not supported resolving ES modules')) {
-            console.error(colors.red('\n✗ ES Module Import Error\n'));
-            console.error(colors.yellow('Your project uses ES modules (ESM), but express-swagger-auto'));
-            console.error(colors.yellow('loads apps using CommonJS require().\n'));
-            console.error(colors.yellow('Solutions:\n'));
-            console.error(colors.yellow('1. Build your TypeScript/ESM code first:'));
+          if (errorMsg.includes('is not supported resolving ES modules') || errorMsg.includes('directory import')) {
+            console.error(colors.red('\n✗ ES Module or Directory Import Error\n'));
+            console.error(colors.yellow('Your project uses ES modules (ESM) or has directory imports,'));
+            console.error(colors.yellow('but express-swagger-auto loads apps using CommonJS require().\n'));
+            console.error(colors.yellow('RECOMMENDED SOLUTION:\n'));
+            console.error(colors.yellow('1. Build your Babel/TypeScript/ESM code first:'));
             console.error(colors.yellow('   npm run build\n'));
-            console.error(colors.yellow('2. Point to the compiled/transpiled file:'));
-            console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js ...\n`));
-            console.error(colors.yellow('3. Or ensure your entry file uses CommonJS require():'));
+            console.error(colors.yellow('2. Point to the compiled output:'));
+            console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js -o openapi.json ...\n`));
+            console.error(colors.yellow('ALTERNATIVE SOLUTIONS:\n'));
+            console.error(colors.yellow('3. Add to package.json scripts for automation:'));
+            console.error(colors.yellow('   "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json --title \\"My API\\""\n'));
+            console.error(colors.yellow('4. Ensure your entry file uses CommonJS require() for all imports:'));
             console.error(colors.yellow('   const middlewares = require("./middlewares");\n'));
             return false;
           }
