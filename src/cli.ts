@@ -308,7 +308,8 @@ async function loadApp(inputPath: string): Promise<{ success: boolean; app?: any
       fileContent = fs.readFileSync(inputPath, 'utf-8');
       const hasImportStatements = /^\s*import\s+/m.test(fileContent);
       const hasExport = /export\s+(default|const|function|class)\s+/m.test(fileContent);
-      isESMSource = hasImportStatements && !hasExport;
+      const hasAppListen = /app\.listen\s*\(/m.test(fileContent);
+      isESMSource = hasImportStatements && (!hasExport || hasAppListen);
     } catch {
       // Continue with regular loading
     }
@@ -422,8 +423,14 @@ function displayLoadError(error: any, resolvedInput: string) {
   const errorMsg = error.message || String(error);
   const isESModuleError = error.isESModule || false;
   const isESMSource = error.isESMSource || false;
+  const fileContent = error.fileContent || '';
+  const hasAppListen = /app\.listen\s*\(/m.test(fileContent);
 
-  if (isESMSource) {
+  if (isESMSource && hasAppListen) {
+    console.error(colors.red('\n✗ Entry File Contains app.listen()\n'));
+    console.error(colors.yellow('Your entry file directly calls app.listen(), which starts the server.'));
+    console.error(colors.yellow('express-swagger-auto needs to load the app without executing the server startup.\n'));
+  } else if (isESMSource) {
     console.error(colors.red('\n✗ ESM Source File Detected\n'));
     console.error(colors.yellow('Your file uses ES6 import/export syntax but doesn\'t export the app.\n'));
     console.error(colors.yellow('The entry file needs to export the Express app instance.\n'));
@@ -441,7 +448,21 @@ function displayLoadError(error: any, resolvedInput: string) {
 
   console.error(colors.yellow('SOLUTIONS:\n'));
 
-  if (isESMSource) {
+  if (isESMSource && hasAppListen) {
+    console.error(colors.yellow('Best: Create a separate app.js that exports the app without calling listen():\n'));
+    console.error(colors.yellow('   // app.js (or app.ts) - exports only, no listen()'));
+    console.error(colors.yellow('   import express from "express";'));
+    console.error(colors.yellow('   export default createApp();\n'));
+    console.error(colors.yellow('   function createApp() {'));
+    console.error(colors.yellow('     const app = express();'));
+    console.error(colors.yellow('     // ... configure routes, middleware'));
+    console.error(colors.yellow('     return app;'));
+    console.error(colors.yellow('   }\n'));
+    console.error(colors.yellow('   // index.js (or server.ts) - uses app.js'));
+    console.error(colors.yellow('   import app from "./app.js";'));
+    console.error(colors.yellow('   app.listen(PORT, () => { ... });\n'));
+    console.error(colors.yellow('   Then run: npx express-swagger-auto generate -i dist/app.js -o openapi.json\n'));
+  } else if (isESMSource) {
     console.error(colors.yellow('1. Add export to your entry file:'));
     console.error(colors.yellow('   // At the end of your file:'));
     console.error(colors.yellow('   export default app;\n'));
@@ -452,19 +473,16 @@ function displayLoadError(error: any, resolvedInput: string) {
   console.error(colors.yellow('2. Build your code using your build script:'));
   console.error(colors.yellow('   npm run build (or pnpm build / yarn build)\n'));
   console.error(colors.yellow('3. Point to the compiled output:'));
+  console.error(colors.yellow('   npx express-swagger-auto generate -i dist/app.js -o openapi.json'));
+  console.error(colors.yellow('   (if using app.js) or'));
   console.error(colors.yellow('   npx express-swagger-auto generate -i dist/index.js -o openapi.json\n'));
 
-  console.error(colors.yellow('4. Ensure your entry file exports the app:'));
-  console.error(colors.yellow('   export default app;  // (ESM)'));
-  console.error(colors.yellow('   // OR'));
-  console.error(colors.yellow('   module.exports = app;  // (CommonJS)\n'));
-
-  console.error(colors.yellow('5. For full automation, add to package.json:'));
+  console.error(colors.yellow('4. For full automation, add to package.json:'));
   console.error(colors.yellow('   "scripts": {'));
-  console.error(colors.yellow('     "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/index.js -o openapi.json"'));
+  console.error(colors.yellow('     "swagger:generate": "npm run build && npx express-swagger-auto generate -i dist/app.js -o openapi.json"'));
   console.error(colors.yellow('   }\n'));
 
-  console.error(colors.yellow('6. File location checked:'));
+  console.error(colors.yellow('5. File location checked:'));
   console.error(colors.yellow(`   ${resolvedInput}\n`));
 }
 
