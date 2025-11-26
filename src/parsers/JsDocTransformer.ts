@@ -16,6 +16,9 @@ export interface JsDocMetadata {
   responses?: Record<string, OpenAPIResponse>;
   requestBody?: OpenAPIRequestBody;
   security?: Array<Record<string, string[]>>;
+  deprecated?: boolean;
+  operationId?: string;
+  examples?: Record<string, any>;
 }
 
 /**

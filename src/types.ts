@@ -71,6 +71,9 @@ export interface OpenAPISchema {
   maximum?: number;
   minItems?: number;
   maxItems?: number;
+  additionalProperties?: OpenAPISchema | boolean;
+  uniqueItems?: boolean;
+  nullable?: boolean;
 }
 
 export interface OpenAPISpec {
