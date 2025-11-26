@@ -1,8 +1,15 @@
 /* eslint-disable no-console */
 const { Command } = require('commander');
-const chalk = require('chalk');
 const fs = require('fs');
 const path = require('path');
+
+// Simple color functions that work with chalk v5
+const colors = {
+  red: (text: string) => `\x1b[31m${text}\x1b[0m`,
+  green: (text: string) => `\x1b[32m${text}\x1b[0m`,
+  blue: (text: string) => `\x1b[34m${text}\x1b[0m`,
+  yellow: (text: string) => `\x1b[33m${text}\x1b[0m`,
+};
 
 // Import internal modules
 const { RouteDiscovery } = require('./core/RouteDiscovery');
@@ -43,7 +50,7 @@ program
           const module = require(path.resolve(options.input));
           app = module.default || module;
         } catch (error) {
-          console.error(chalk.red(`✗ Failed to load Express app: ${(error as any).message}`));
+          console.error(colors.red(`✗ Failed to load Express app: ${(error as any).message}`));
           return false;
         }
 
@@ -76,16 +83,16 @@ program
         // Write spec to file
         fs.writeFileSync(options.output, JSON.stringify(spec, null, 2));
         const specSize = (JSON.stringify(spec).length / 1024).toFixed(2);
-        console.log(chalk.green(`✓ Updated spec (${routes.length} routes, ${specSize}KB)\n`));
+        console.log(colors.green(`✓ Updated spec (${routes.length} routes, ${specSize}KB)\n`));
         return true;
       };
 
-      console.log(chalk.blue('📋 Generating OpenAPI specification...\n'));
+      console.log(colors.blue('📋 Generating OpenAPI specification...\n'));
 
       // Validate input file exists
       const resolvedInput = path.resolve(options.input);
       if (!fs.existsSync(resolvedInput)) {
-        console.error(chalk.red(`✗ Input file not found: ${options.input}`));
+        console.error(colors.red(`✗ Input file not found: ${options.input}`));
         process.exit(1);
       }
 
@@ -95,11 +102,11 @@ program
         process.exit(1);
       }
 
-      console.log(chalk.blue('✅ Done!\n'));
+      console.log(colors.blue('✅ Done!\n'));
 
       // Watch mode
       if (options.watch) {
-        console.log(chalk.yellow('👀 Watch mode enabled. Watching for changes...\n'));
+        console.log(colors.yellow('👀 Watch mode enabled. Watching for changes...\n'));
 
         const watcher = new FileWatcher({
           paths: ['src/**', 'lib/**'],
@@ -108,12 +115,12 @@ program
         });
 
         watcher.onChange(async (eventType: any, filePath: any) => {
-          console.log(chalk.gray(`→ File ${eventType}: ${filePath}`));
-          console.log(chalk.gray('→ Regenerating specification...\n'));
+          console.log(colors.yellow(`→ File ${eventType}: ${filePath}`));
+          console.log(colors.yellow('→ Regenerating specification...\n'));
 
           const updated = await generateSpec();
           if (updated) {
-            console.log(chalk.gray(`Press Ctrl+C to stop watching\n`));
+            console.log(colors.yellow(`Press Ctrl+C to stop watching\n`));
           }
         });
 
@@ -121,13 +128,13 @@ program
 
         // Handle graceful shutdown
         process.on('SIGINT', async () => {
-          console.log('\n\n' + chalk.yellow('👋 Stopping file watcher...\n'));
+          console.log('\n\n' + colors.yellow('👋 Stopping file watcher...\n'));
           await watcher.stop();
           process.exit(0);
         });
       }
     } catch (error) {
-      console.error(chalk.red(`✗ Error: ${(error as any).message}`));
+      console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
     }
   });
@@ -142,11 +149,11 @@ program
   .option('--strict', 'Enable strict validation mode', false)
   .action(async function (specPath: any, options: any) {
     try {
-      console.log(chalk.blue('🔍 Validating OpenAPI specification...\n'));
+      console.log(colors.blue('🔍 Validating OpenAPI specification...\n'));
 
       // Check file exists
       if (!fs.existsSync(specPath)) {
-        console.error(chalk.red(`✗ Specification file not found: ${specPath}`));
+        console.error(colors.red(`✗ Specification file not found: ${specPath}`));
         process.exit(1);
       }
 
@@ -156,7 +163,7 @@ program
         const content = fs.readFileSync(specPath, 'utf-8');
         spec = JSON.parse(content);
       } catch (error) {
-        console.error(chalk.red(`✗ Invalid JSON: ${(error as any).message}`));
+        console.error(colors.red(`✗ Invalid JSON: ${(error as any).message}`));
         process.exit(1);
       }
 
@@ -180,8 +187,8 @@ program
       }
 
       if (errors.length > 0) {
-        console.error(chalk.red('✗ Validation failed:\n'));
-        errors.forEach((err) => console.error(chalk.red(`  • ${err}`)));
+        console.error(colors.red('✗ Validation failed:\n'));
+        errors.forEach((err) => console.error(colors.red(`  • ${err}`)));
         process.exit(1);
       }
 
@@ -197,7 +204,7 @@ program
         }
       }
 
-      console.log(chalk.green('✓ Validation passed!\n'));
+      console.log(colors.green('✓ Validation passed!\n'));
       console.log(`  OpenAPI Version: ${spec.openapi}`);
       console.log(`  Title: ${spec.info.title}`);
       console.log(`  Version: ${spec.info.version}`);
@@ -205,13 +212,13 @@ program
       console.log(`  Operations: ${operationCount}\n`);
 
       if (options.strict) {
-        console.log(chalk.gray('→ Running strict validation...\n'));
-        console.log(chalk.gray('(Strict validation implementation coming in Phase 4)'));
+        console.log(colors.yellow('→ Running strict validation...\n'));
+        console.log(colors.yellow('(Strict validation implementation coming in Phase 4)'));
       }
 
-      console.log(chalk.blue('✅ Done!\n'));
+      console.log(colors.blue('✅ Done!\n'));
     } catch (error) {
-      console.error(chalk.red(`✗ Error: ${(error as any).message}`));
+      console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
     }
   });
@@ -227,20 +234,20 @@ program
   .option('-p, --port <number>', 'Port number (default: 3000)', '3000')
   .action(function (options: any) {
     try {
-      console.log(chalk.blue('🎯 Starting Swagger UI server...\n'));
+      console.log(colors.blue('🎯 Starting Swagger UI server...\n'));
 
       if (!fs.existsSync(options.spec)) {
-        console.error(chalk.red(`✗ Specification file not found: ${options.spec}`));
+        console.error(colors.red(`✗ Specification file not found: ${options.spec}`));
         process.exit(1);
       }
 
-      console.log(chalk.yellow('⚠️  Serve command requires additional setup'));
-      console.log(chalk.gray('    Implementation coming in Phase 4\n'));
-      console.log(chalk.gray(`   To manually serve Swagger UI:`));
-      console.log(chalk.gray(`   1. Use SwaggerUI static files`));
-      console.log(chalk.gray(`   2. Point to spec file at: ${options.spec}\n`));
+      console.log(colors.yellow('⚠️  Serve command requires additional setup'));
+      console.log(colors.yellow('    Implementation coming in Phase 4\n'));
+      console.log(colors.yellow(`   To manually serve Swagger UI:`));
+      console.log(colors.yellow(`   1. Use SwaggerUI static files`));
+      console.log(colors.yellow(`   2. Point to spec file at: ${options.spec}\n`));
     } catch (error) {
-      console.error(chalk.red(`✗ Error: ${(error as any).message}`));
+      console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
     }
   });
@@ -255,22 +262,22 @@ program
   .option('--config <path>', 'Config file path')
   .action(function (source: any) {
     try {
-      console.log(chalk.blue('🔄 Starting migration tool...\n'));
+      console.log(colors.blue('🔄 Starting migration tool...\n'));
 
       const supportedSources = ['swagger-jsdoc', 'tsoa', 'express-oas-generator'];
       if (!supportedSources.includes(source)) {
-        console.error(chalk.red(`✗ Unsupported source: ${source}`));
-        console.error(chalk.gray(`   Supported: ${supportedSources.join(', ')}\n`));
+        console.error(colors.red(`✗ Unsupported source: ${source}`));
+        console.error(colors.yellow(`   Supported: ${supportedSources.join(', ')}\n`));
         process.exit(1);
       }
 
-      console.log(chalk.yellow('⚠️  Migration command implementation coming in Phase 4\n'));
-      console.log(chalk.gray(`   To migrate from ${source}:`));
-      console.log(chalk.gray(`   1. Review your existing config`));
-      console.log(chalk.gray(`   2. Map decorators/JSDoc to express-swagger-auto format`));
-      console.log(chalk.gray(`   3. Run: express-swagger-auto generate\n`));
+      console.log(colors.yellow('⚠️  Migration command implementation coming in Phase 4\n'));
+      console.log(colors.yellow(`   To migrate from ${source}:`));
+      console.log(colors.yellow(`   1. Review your existing config`));
+      console.log(colors.yellow(`   2. Map decorators/JSDoc to express-swagger-auto format`));
+      console.log(colors.yellow(`   3. Run: express-swagger-auto generate\n`));
     } catch (error) {
-      console.error(chalk.red(`✗ Error: ${(error as any).message}`));
+      console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
     }
   });
