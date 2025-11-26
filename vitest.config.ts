@@ -22,6 +22,6 @@ export default defineConfig({
         statements: 85,
       },
     },
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'test/**/*.test.ts', 'test/**/*.spec.ts'],
   },
 });

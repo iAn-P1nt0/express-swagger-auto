@@ -112,25 +112,50 @@ Phase 5 (Release Preparation) completed successfully. Phase 6 is now underway wi
 - Microservices with shared spec generation
 - Real-time API with WebSocket documentation
 
-### Phase 7: Advanced Features (Q1-Q2 2025)
-**Focus**: Enterprise and advanced use cases
+### Phase 7: Advanced CLI Features (Q1-Q2 2025)
+**Focus**: Enterprise CLI tooling and developer experience
 
-**Planned Features:**
-- **Schema Evolution**: Track breaking changes between versions (`diff` command)
-- **Mock Server**: Generate functioning mock servers from specs (`mock` command)
-- **API Testing**: Generate integration tests from operations
-- **Server-side Validation**: Generate validators from OpenAPI specs
-- **Documentation Generation**: Auto-generate API docs from specs
-- **Analytics Integration**: Track API usage patterns
-- **Rate Limiting Documentation**: Auto-detect and document rate limits
-- **SDK Generation**: Generate TypeScript client SDKs
+#### Phase 7.1: Quick Wins (v0.3.1) - Low Effort, High Impact
+- [ ] **`stats` command** - API metrics and statistics (operations, schemas, coverage)
+- [ ] **Shell completion** - bash, zsh, fish, PowerShell auto-completion
+- [ ] **Extended output formats** - checkstyle, junit, stylish, github-actions, codeclimate
 
-**Validator Support:**
+#### Phase 7.2: API Governance (v0.4.0) - Medium Effort
+- [ ] **`diff` command** - Breaking change detection between spec versions
+- [ ] **`lint` command** - Custom ruleset support (subset of Spectral features)
+  - Built-in rulesets: `recommended`, `minimal`, `strict`
+  - Rule severity: `error`, `warn`, `off`
+  - Express-specific rules (middleware, route patterns)
+
+#### Phase 7.3: Advanced Workflows (v0.5.0) - High Effort
+- [ ] **`bundle` command** - Multi-file spec management with $ref resolution
+- [ ] **`mock` command** - Mock server generation from specs
+- [ ] **`score` command** - API quality scoring with actionable recommendations
+- [ ] **`preview` command** - Hot-reloading documentation preview
+
+#### Validator Support:
 - [ ] Zod schema introspection improvements
 - [ ] Joi latest version support
 - [ ] GraphQL validators (GraphQL-core)
 - [ ] TypeORM/Prisma schema support
 - [ ] JSON Schema native support
+
+#### Competitive Feature Matrix
+
+| Feature | express-swagger-auto | Redocly CLI | Spectral | OpenAPI Generator |
+|---------|---------------------|-------------|----------|-------------------|
+| Generate from Express | ✅ Unique | ❌ | ❌ | ❌ |
+| Multi-strategy (JSDoc/Decorator/Runtime) | ✅ Unique | ❌ | ❌ | ❌ |
+| Validate | ✅ | ✅ | ✅ | ✅ |
+| Lint (custom rules) | 🔜 v0.4.0 | ✅ | ✅ | ❌ |
+| Stats | 🔜 v0.3.1 | ✅ | ❌ | ❌ |
+| Diff | 🔜 v0.4.0 | ❌ | ❌ | ❌ |
+| Bundle | 🔜 v0.5.0 | ✅ | ❌ | ❌ |
+| Mock Server | 🔜 v0.5.0 | ❌ | ❌ | ✅ |
+| Shell Completion | 🔜 v0.3.1 | ✅ | ❌ | ✅ |
+| SARIF Output | ✅ | ❌ | ✅ | ❌ |
+| Watch Mode | ✅ | ✅ | ❌ | ❌ |
+| Config File | ✅ | ✅ | ✅ | ✅ |
 
 ### Phase 8: Performance & Scale (Q2 2025)
 **Focus**: Handle large enterprise APIs
