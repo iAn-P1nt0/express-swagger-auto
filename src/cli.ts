@@ -277,7 +277,7 @@ program
   .description('Validate OpenAPI specification')
   .option('--strict', 'Enable strict validation mode', false)
   .option('--ci', 'CI mode: no colors, JSON output', false)
-  .option('--ci-format <format>', 'CI output format (text|json|sarif)', 'text')
+  .option('--ci-format <format>', 'CI output format (text|json|sarif|checkstyle|junit|github-actions|stylish|codeclimate|markdown|gitlab)', 'text')
   .option('--fail-on-warnings', 'Exit with error code on warnings', false)
   .option('--security-audit', 'Check for security best practices', false)
   .action(async function (specPath: any, options: any) {
@@ -414,6 +414,19 @@ program
       const failed = hasErrors || (options.failOnWarnings && hasWarnings);
 
       if (isCiMode) {
+        // Convert to ValidationResult format for formatters
+        const allResults = [
+          ...errors.map(e => ({ ruleId: 'openapi-validation', severity: 'error' as const, message: e.message, path: e.path })),
+          ...warnings.map(w => ({ ruleId: 'openapi-validation', severity: 'warning' as const, message: w.message, path: w.path })),
+        ];
+        
+        const formatterOptions = {
+          specPath,
+          results: allResults,
+          stats: { errors: errors.length, warnings: warnings.length, infos: 0 },
+          duration,
+        };
+
         if (options.ciFormat === 'json') {
           const output = {
             success: !failed,
@@ -461,6 +474,11 @@ program
             }],
           };
           console.log(JSON.stringify(sarif, null, 2));
+        } else if (['checkstyle', 'junit', 'github-actions', 'stylish', 'codeclimate', 'markdown', 'gitlab'].includes(options.ciFormat)) {
+          // Use extended formatters
+          const { getFormatter } = await import('./cli/formatters');
+          const formatter = getFormatter(options.ciFormat);
+          console.log(formatter(formatterOptions));
         } else {
           // Text format for CI
           if (failed) {
@@ -807,6 +825,126 @@ program
       console.log(colors.yellow(`   1. Review your existing config`));
       console.log(colors.yellow(`   2. Map decorators/JSDoc to express-swagger-auto format`));
       console.log(colors.yellow(`   3. Run: express-swagger-auto generate\n`));
+    } catch (error) {
+      console.error(colors.red(`✗ Error: ${(error as any).message}`));
+      process.exit(1);
+    }
+  });
+
+// ============================================================
+// STATS COMMAND
+// ============================================================
+
+program
+  .command('stats')
+  .description('Display statistics about an OpenAPI specification')
+  .argument('[specPath]', 'Path to OpenAPI spec file', './openapi.json')
+  .option('-f, --format <format>', 'Output format (text|json|markdown)', 'text')
+  .option('--ci', 'CI mode with structured output', false)
+  .action(async function (specPath: string, options: any) {
+    const yaml = await import('js-yaml');
+    const { calculateStats, formatStatsText, formatStatsMarkdown } = await import('./cli/stats');
+    
+    const isCiMode = options.ci || process.env.CI === 'true';
+    
+    try {
+      // Resolve spec path
+      const resolvedPath = path.resolve(specPath);
+      
+      if (!fs.existsSync(resolvedPath)) {
+        if (isCiMode) {
+          console.log(JSON.stringify({ 
+            success: false, 
+            error: `Spec file not found: ${resolvedPath}` 
+          }));
+        } else {
+          console.error(colors.red(`✗ Spec file not found: ${resolvedPath}`));
+        }
+        process.exit(1);
+      }
+      
+      // Read and parse spec
+      const content = fs.readFileSync(resolvedPath, 'utf-8');
+      let spec: any;
+      
+      if (resolvedPath.endsWith('.yaml') || resolvedPath.endsWith('.yml')) {
+        spec = yaml.load(content);
+      } else {
+        spec = JSON.parse(content);
+      }
+      
+      // Calculate stats
+      const stats = calculateStats(spec);
+      
+      // Output based on format
+      if (options.format === 'json' || isCiMode) {
+        console.log(JSON.stringify(stats, null, 2));
+      } else if (options.format === 'markdown') {
+        console.log(formatStatsMarkdown(stats));
+      } else {
+        console.log(formatStatsText(stats));
+      }
+      
+    } catch (error) {
+      if (isCiMode) {
+        console.log(JSON.stringify({ 
+          success: false, 
+          error: (error as any).message 
+        }));
+      } else {
+        console.error(colors.red(`✗ Error: ${(error as any).message}`));
+      }
+      process.exit(1);
+    }
+  });
+
+// ============================================================
+// COMPLETION COMMAND
+// ============================================================
+
+program
+  .command('completion')
+  .description('Generate shell completion script')
+  .argument('[shell]', 'Shell type (bash|zsh|fish|powershell)', 'bash')
+  .action(async function (shell: string) {
+    const { getCompletionScript } = await import('./cli/completion');
+    
+    const supportedShells = ['bash', 'zsh', 'fish', 'powershell'];
+    
+    if (!supportedShells.includes(shell)) {
+      console.error(colors.red(`✗ Unsupported shell: ${shell}`));
+      console.error(colors.yellow(`   Supported shells: ${supportedShells.join(', ')}\n`));
+      process.exit(1);
+    }
+    
+    try {
+      const script = getCompletionScript(program, shell as 'bash' | 'zsh' | 'fish' | 'powershell');
+      console.log(script);
+      
+      // Print installation instructions to stderr so they don't pollute the script
+      console.error('');
+      console.error(colors.dim('# Installation instructions:'));
+      
+      switch (shell) {
+        case 'bash':
+          console.error(colors.dim('# Add to ~/.bashrc:'));
+          console.error(colors.dim('#   express-swagger-auto completion bash >> ~/.bashrc'));
+          console.error(colors.dim('#   source ~/.bashrc'));
+          break;
+        case 'zsh':
+          console.error(colors.dim('# Add to ~/.zshrc:'));
+          console.error(colors.dim('#   express-swagger-auto completion zsh >> ~/.zshrc'));
+          console.error(colors.dim('#   source ~/.zshrc'));
+          break;
+        case 'fish':
+          console.error(colors.dim('# Save to completions directory:'));
+          console.error(colors.dim('#   express-swagger-auto completion fish > ~/.config/fish/completions/express-swagger-auto.fish'));
+          break;
+        case 'powershell':
+          console.error(colors.dim('# Add to PowerShell profile:'));
+          console.error(colors.dim('#   express-swagger-auto completion powershell >> $PROFILE'));
+          break;
+      }
     } catch (error) {
       console.error(colors.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);

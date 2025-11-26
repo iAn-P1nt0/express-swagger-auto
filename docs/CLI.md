@@ -606,3 +606,107 @@ npm root -g
 - Read [Security Guide](./SECURITY.md) for production security practices
 - Check [Performance Guide](./PERFORMANCE.md) for optimization tips
 - Explore [Decorator API](../src/decorators/metadata.ts) for advanced metadata
+- See [CLI Roadmap](./CLI-ROADMAP.md) for planned features
+
+---
+
+## Planned Commands (Coming Soon)
+
+The following commands are planned for upcoming releases. See [CLI-ROADMAP.md](./CLI-ROADMAP.md) for detailed specifications.
+
+### `stats` - API Statistics (v0.3.1)
+
+Analyze your OpenAPI spec and get comprehensive metrics.
+
+```bash
+express-swagger-auto stats ./openapi.yaml
+express-swagger-auto stats ./openapi.yaml --format json
+```
+
+**Metrics provided:**
+- Operations count by method
+- Schema statistics
+- Documentation coverage percentage
+- Security coverage
+- Tag distribution
+
+---
+
+### `completion` - Shell Completion (v0.3.1)
+
+Generate shell completion scripts for improved CLI experience.
+
+```bash
+# Bash
+express-swagger-auto completion bash >> ~/.bashrc
+
+# Zsh
+express-swagger-auto completion zsh >> ~/.zshrc
+
+# Fish
+express-swagger-auto completion fish > ~/.config/fish/completions/express-swagger-auto.fish
+```
+
+---
+
+### `diff` - Breaking Change Detection (v0.4.0)
+
+Compare two OpenAPI specs to detect breaking changes.
+
+```bash
+express-swagger-auto diff ./v1/openapi.yaml ./v2/openapi.yaml
+express-swagger-auto diff ./old.yaml ./new.yaml --fail-on-breaking
+express-swagger-auto diff ./old.yaml ./new.yaml --format markdown
+```
+
+**Detects:**
+- 🔴 Breaking changes (removed endpoints, changed types)
+- 🟢 Non-breaking changes (new endpoints, added properties)
+- 🟡 Deprecations
+
+---
+
+### `lint` - Advanced Linting (v0.4.0)
+
+Lint your spec with configurable rulesets.
+
+```bash
+express-swagger-auto lint ./openapi.yaml
+express-swagger-auto lint ./openapi.yaml --ruleset strict
+express-swagger-auto lint ./openapi.yaml --config .swagger-auto-lint.yaml
+```
+
+**Built-in rulesets:** `minimal`, `recommended`, `strict`
+
+---
+
+### `bundle` - Multi-file Bundling (v0.5.0)
+
+Bundle multi-file specs into a single file.
+
+```bash
+express-swagger-auto bundle ./api/openapi.yaml -o ./dist/openapi.yaml
+express-swagger-auto bundle ./api/openapi.yaml --dereference
+```
+
+---
+
+### `mock` - Mock Server (v0.5.0)
+
+Generate a mock server from your OpenAPI spec.
+
+```bash
+express-swagger-auto mock ./openapi.yaml
+express-swagger-auto mock ./openapi.yaml --port 4010 --dynamic
+```
+
+---
+
+### `score` - Quality Scoring (v0.5.0)
+
+Get an API quality score with recommendations.
+
+```bash
+express-swagger-auto score ./openapi.yaml
+express-swagger-auto score ./openapi.yaml --threshold 80 --fail-below
+```
