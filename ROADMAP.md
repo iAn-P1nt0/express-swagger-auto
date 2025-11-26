@@ -4,9 +4,9 @@ This document outlines the vision and planned phases for express-swagger-auto. O
 
 ## Current Status
 
-**Phase 5: Release Preparation** - In Progress
+**Phase 6: Documentation & Examples** - In Progress
 
-We're preparing v0.1.0 for public release on npm with full documentation, CI/CD, and community infrastructure.
+Phase 5 (Release Preparation) completed successfully. The package v0.2.3 is published on npm with full documentation, CI/CD, and community infrastructure. Now focusing on expanded documentation and additional examples.
 
 ## Phases Overview
 
@@ -55,26 +55,24 @@ We're preparing v0.1.0 for public release on npm with full documentation, CI/CD,
 
 **Status**: Complete - 191 tests passing (+39)
 
-### 🚀 Phase 5: Release Preparation (Current)
+### ✅ Phase 5: Release Preparation (Completed)
 **Focus**: Community and publication readiness
 
-**Core Deliverables:**
-- [x] CHANGELOG.md with v0.1.0 notes
+**Completed Deliverables:**
+- [x] CHANGELOG.md with release notes
 - [x] CONTRIBUTING.md development guide
 - [x] GitHub CI/CD workflows (test, lint, publish)
 - [x] GitHub issue/PR templates (bug, feature)
 - [x] CODE_OF_CONDUCT.md
 - [x] SECURITY.md vulnerability policy
-- [ ] ROADMAP.md (this file)
-- [ ] API documentation
-- [ ] Example app updates
-- [ ] v0.1.0 release and GitHub release
+- [x] ROADMAP.md
+- [x] API documentation (docs/API.md)
+- [x] Example app updates
+- [x] npm publish (v0.2.3)
 
-**Timeline**: 1-2 weeks to public release
+**Status**: Complete - Package published to npm
 
-## Future Phases
-
-### Phase 6: Documentation & Examples (Q1 2025)
+### 🚀 Phase 6: Documentation & Examples (Current)
 **Focus**: Comprehensive guides and real-world examples
 
 **Planned Features:**
