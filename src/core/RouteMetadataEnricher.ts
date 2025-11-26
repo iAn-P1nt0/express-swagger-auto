@@ -23,6 +23,8 @@ export interface EnrichedRouteMetadata extends RouteMetadata {
   operationId: string;
   deprecated: boolean;
   examples: Record<string, any>;
+  description?: string;
+  summary?: string;
 }
 
 export class RouteMetadataEnricher {
@@ -330,14 +332,17 @@ export class RouteMetadataEnricher {
     priority: 'base' | 'additional' = 'additional'
   ): EnrichedRouteMetadata {
     if (priority === 'base') {
-      return {
-        ...base,
-        ...Object.fromEntries(
-          Object.entries(additional).filter(([, value]) => value !== undefined)
-        ),
-      };
+      // Base takes priority - only add additional fields that don't exist in base
+      const result = { ...base } as EnrichedRouteMetadata;
+      for (const [key, value] of Object.entries(additional)) {
+        if (!(key in base)) {
+          (result as any)[key] = value;
+        }
+      }
+      return result;
     }
 
+    // Additional takes priority
     return {
       ...base,
       ...additional,

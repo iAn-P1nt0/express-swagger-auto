@@ -38,7 +38,7 @@ export class MiddlewareAnalyzer {
    */
   analyzeRouteMiddleware(
     routeLayer: any,
-    basePath: string = ''
+    _basePath: string = ''
   ): MiddlewareMetadata[] {
     const middlewares: MiddlewareMetadata[] = [];
 
@@ -279,7 +279,7 @@ export class MiddlewareAnalyzer {
       .filter(m => m.type === 'auth' && m.security)
       .map(m => ({
         name: m.name,
-        type: m.type,
+        type: m.security!.type,
         description: m.description,
         scheme: m.security?.scheme,
         bearerFormat: m.security?.bearerFormat,

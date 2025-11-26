@@ -4,6 +4,7 @@
  */
 
 export interface JoiSchemaProperty {
+  name?: string;
   type: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null';
   description?: string;
   required: boolean;
@@ -43,7 +44,7 @@ export class JoiSchemaParser {
   /**
    * Check if an object is a Joi schema
    */
-  private isJoiSchema(obj: any): boolean {
+  isJoiSchema(obj: any): boolean {
     if (!obj) return false;
 
     // Joi schemas have a _type property and describe method
@@ -63,12 +64,23 @@ export class JoiSchemaParser {
         return this.describeSchema(joiSchema.describe());
       }
 
-      // Fallback for older Joi versions
-      return this.parseDirectSchema(joiSchema);
+      // Fallback for older Joi versions - try to parse from _type and _flags
+      return this.parseFallbackSchema(joiSchema);
     } catch (error) {
       // Return a generic object schema if parsing fails
       return { type: 'object' };
     }
+  }
+
+  /**
+   * Fallback parser for older Joi versions that don't have describe()
+   */
+  private parseFallbackSchema(joiSchema: any): ParsedJoiSchema {
+    const type = this.normalizeType(joiSchema._type || 'object');
+    return {
+      type: type as any,
+      description: joiSchema._description,
+    };
   }
 
   /**
@@ -268,7 +280,7 @@ export class JoiSchemaParser {
    * Parse Joi schema from source code string
    * Useful for extracting schema from router middleware declarations
    */
-  parseFromSourceCode(sourceCode: string, schemaVarName: string = 'schema'): JoiSchemaProperty[] {
+  parseFromSourceCode(sourceCode: string, _schemaVarName: string = 'schema'): JoiSchemaProperty[] {
     const properties: JoiSchemaProperty[] = [];
 
     // Pattern to find Joi.object() declarations
@@ -311,14 +323,13 @@ export class JoiSchemaParser {
     const match = /(\w+)\s*:\s*Joi\.(\w+)\(\)(.*)/.exec(line);
     if (!match) return null;
 
-    const [, , joiType, modifiers] = match;
+    const [, name, joiType, modifiers] = match;
     const type = this.normalizeType(joiType);
     const required = /\.required\(\)/.test(modifiers);
     const hasEmail = /\.email\(\)/.test(modifiers);
-    const hasMin = /\.min\((\d+)\)/.test(modifiers);
-    const hasMax = /\.max\((\d+)\)/.test(modifiers);
 
     const property: JoiSchemaProperty = {
+      name,
       type: type as any,
       required,
     };

@@ -281,7 +281,7 @@ export class SchemaExtractor {
       return null;
     }
 
-    return this.extractFromJoiMiddleware(joiSchemas) || undefined;
+    return this.extractFromJoiMiddleware(joiSchemas) || null;
   }
 
   /**

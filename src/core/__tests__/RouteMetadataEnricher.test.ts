@@ -221,6 +221,10 @@ describe('RouteMetadataEnricher', () => {
     it('should preserve base with priority', () => {
       const base = enricher.enrich(baseRoute, {
         generateOperationId: true,
+        jsDocMetadata: {
+          description: 'Base description',
+          tags: ['base'],
+        },
       });
 
       const additional = {
@@ -230,6 +234,7 @@ describe('RouteMetadataEnricher', () => {
       const merged = enricher.mergeMetadata(base, additional, 'base');
 
       expect(merged.description).toBe(base.description);
+      expect(merged.description).toBe('Base description');
     });
   });
 });

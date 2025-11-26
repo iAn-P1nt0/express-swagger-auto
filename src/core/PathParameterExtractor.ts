@@ -27,19 +27,16 @@ export class PathParameterExtractor {
    * Extract parameters from an Express path pattern
    * Handles :id, :slug, /users/:userId/posts/:postId, etc.
    */
-  extractPathParameters(path: string): ParsedPath {
-    const normalized = this.normalizePath(path);
-    const parameters: PathParameter[] = [];
-    let isRegex = false;
-    let pattern = path;
-
+  extractPathParameters(path: string | RegExp): ParsedPath {
     // Check if path is a regex pattern
     if (path instanceof RegExp) {
-      isRegex = true;
-      pattern = path.source;
+      const pattern = path.source;
       // Try to extract parameters from regex
       return this.extractFromRegex(pattern);
     }
+
+    const normalized = this.normalizePath(path);
+    const parameters: PathParameter[] = [];
 
     // Extract named parameters like :id, :userId, etc.
     const paramPattern = /:([a-zA-Z_][a-zA-Z0-9_]*)/g;
@@ -67,9 +64,9 @@ export class PathParameterExtractor {
   /**
    * Create a PathParameter for a given parameter name
    */
-  private createPathParameter(paramName: string, path: string): PathParameter {
-    const type = this.inferParameterType(paramName, path);
-    const pattern = this.inferParameterPattern(paramName, path);
+  private createPathParameter(paramName: string, _path: string): PathParameter {
+    const type = this.inferParameterType(paramName);
+    const pattern = this.inferParameterPattern(paramName);
 
     return {
       name: paramName,
@@ -87,8 +84,7 @@ export class PathParameterExtractor {
    * Infer parameter type based on naming conventions
    */
   private inferParameterType(
-    paramName: string,
-    path: string
+    paramName: string
   ): 'string' | 'number' | 'integer' | 'boolean' {
     // Check for ID patterns
     if (/id$/i.test(paramName) || /Id$/i.test(paramName)) {
@@ -112,7 +108,7 @@ export class PathParameterExtractor {
   /**
    * Infer regex pattern for parameter validation
    */
-  private inferParameterPattern(paramName: string, path: string): string | undefined {
+  private inferParameterPattern(paramName: string): string | undefined {
     // UUID pattern
     if (/uuid|guid/i.test(paramName)) {
       return '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';

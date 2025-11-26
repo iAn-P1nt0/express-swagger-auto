@@ -1,6 +1,10 @@
 import type { ExpressApp, RouteMetadata, OpenAPIParameter } from '../types';
 import type { JsDocParser } from '../parsers/JsDocParser';
 import type { JsDocMetadata } from '../parsers/JsDocTransformer';
+import { MiddlewareAnalyzer, type MiddlewareMetadata } from './MiddlewareAnalyzer';
+import { PathParameterExtractor, type PathParameter } from './PathParameterExtractor';
+import { RouteMetadataEnricher, type EnrichedRouteMetadata } from './RouteMetadataEnricher';
+import { SchemaExtractor } from '../schema/SchemaExtractor';
 
 export interface RouteDiscoveryOptions {
   /**
@@ -22,17 +26,64 @@ export interface RouteDiscoveryOptions {
    * - 'merge': Deep merge both sources (default)
    */
   metadataMergeStrategy?: 'jsdoc-priority' | 'decorator-priority' | 'merge';
+
+  /**
+   * Enable middleware analysis for security detection
+   */
+  enableMiddlewareAnalysis?: boolean;
+
+  /**
+   * Enable path parameter extraction and normalization
+   */
+  enablePathParameterExtraction?: boolean;
+
+  /**
+   * Enable schema extraction from controllers
+   */
+  enableSchemaExtraction?: boolean;
+
+  /**
+   * Enable metadata enrichment (tags, operationId generation)
+   */
+  enableMetadataEnrichment?: boolean;
+
+  /**
+   * Custom tags to add to all routes
+   */
+  customTags?: string[];
+
+  /**
+   * Generate operationId automatically if not provided
+   */
+  generateOperationId?: boolean;
 }
 
 export class RouteDiscovery {
   private routes: RouteMetadata[] = [];
+  private enrichedRoutes: EnrichedRouteMetadata[] = [];
   private visitedLayers = new Set<any>();
   private jsDocMetadataMap: Map<string, JsDocMetadata> = new Map();
 
+  // Phase 1 & 2 analyzers
+  private middlewareAnalyzer: MiddlewareAnalyzer;
+  private pathParameterExtractor: PathParameterExtractor;
+  private routeMetadataEnricher: RouteMetadataEnricher;
+  private schemaExtractor: SchemaExtractor;
+  private options: RouteDiscoveryOptions = {};
+
+  constructor() {
+    this.middlewareAnalyzer = new MiddlewareAnalyzer();
+    this.pathParameterExtractor = new PathParameterExtractor();
+    this.routeMetadataEnricher = new RouteMetadataEnricher();
+    this.schemaExtractor = new SchemaExtractor();
+  }
+
   discover(app: ExpressApp, options?: RouteDiscoveryOptions): RouteMetadata[] {
     this.routes = [];
+    this.enrichedRoutes = [];
     this.visitedLayers.clear();
     this.jsDocMetadataMap.clear();
+    this.options = options || {};
 
     // Parse JSDoc comments if enabled
     if (options?.enableJsDocParsing && options?.jsDocParser) {
@@ -40,7 +91,32 @@ export class RouteDiscovery {
     }
 
     this.extractRoutes(app);
+
+    // If enrichment is enabled, return enriched routes
+    if (this.shouldEnrichRoutes()) {
+      return this.enrichedRoutes as unknown as RouteMetadata[];
+    }
+
     return this.routes;
+  }
+
+  /**
+   * Get enriched routes with full metadata
+   */
+  getEnrichedRoutes(): EnrichedRouteMetadata[] {
+    return this.enrichedRoutes;
+  }
+
+  /**
+   * Check if any enrichment option is enabled
+   */
+  private shouldEnrichRoutes(): boolean {
+    return !!(
+      this.options.enableMiddlewareAnalysis ||
+      this.options.enablePathParameterExtraction ||
+      this.options.enableSchemaExtraction ||
+      this.options.enableMetadataEnrichment
+    );
   }
 
   /**
@@ -132,13 +208,90 @@ export class RouteDiscovery {
       // Merge metadata from both sources
       const mergedMetadata = this.mergeMetadata(decoratorMetadata, jsDocMetadata);
 
-      this.routes.push({
+      const baseRoute: RouteMetadata = {
         method: method.toUpperCase(),
         path: fullPath,
         handler: primaryHandler,
         metadata: mergedMetadata,
-      });
+      };
+
+      this.routes.push(baseRoute);
+
+      // Enrich route if any enrichment option is enabled
+      if (this.shouldEnrichRoutes()) {
+        const enrichedRoute = this.enrichRoute(baseRoute, layer, jsDocMetadata);
+        this.enrichedRoutes.push(enrichedRoute);
+      }
     }
+  }
+
+  /**
+   * Enrich a route with Phase 1 & 2 analyzers
+   */
+  private enrichRoute(
+    baseRoute: RouteMetadata,
+    layer: any,
+    jsDocMetadata?: JsDocMetadata
+  ): EnrichedRouteMetadata {
+    let middlewares: MiddlewareMetadata[] = [];
+    let parameters: PathParameter[] = [];
+
+    // Analyze middleware (Phase 1)
+    if (this.options.enableMiddlewareAnalysis) {
+      middlewares = this.middlewareAnalyzer.analyzeRouteMiddleware(layer);
+    }
+
+    // Extract path parameters (Phase 1)
+    if (this.options.enablePathParameterExtraction) {
+      const paramResult = this.pathParameterExtractor.extractPathParameters(baseRoute.path);
+      parameters = paramResult.parameters;
+    }
+
+    // Extract schema from controller (Phase 2)
+    if (this.options.enableSchemaExtraction) {
+      const controllerCode = baseRoute.handler?.toString() || '';
+      const routeSchema = this.schemaExtractor.extractRouteSchema(
+        baseRoute.path,
+        baseRoute.method,
+        {
+          controllerCode,
+          jsDocComment: jsDocMetadata?.description,
+        }
+      );
+
+      // Merge schema info into metadata
+      if (routeSchema.schema && baseRoute.metadata) {
+        if (routeSchema.schema.requestBody && !baseRoute.metadata.requestBody) {
+          baseRoute.metadata.requestBody = {
+            required: true,
+            content: {
+              'application/json': {
+                schema: routeSchema.schema.requestBody,
+              },
+            },
+          };
+        }
+        if (routeSchema.schema.responses && !baseRoute.metadata.responses) {
+          baseRoute.metadata.responses = {};
+          for (const [code, response] of Object.entries(routeSchema.schema.responses)) {
+            baseRoute.metadata.responses[code] = {
+              description: response.description || `Response ${code}`,
+            };
+          }
+        }
+      }
+    }
+
+    // Enrich metadata (Phase 1)
+    const enriched = this.routeMetadataEnricher.enrich(baseRoute, {
+      middlewares,
+      parameters,
+      jsDocMetadata,
+      customTags: this.options.customTags,
+      generateOperationId: this.options.generateOperationId ?? true,
+    });
+
+    return enriched;
   }
 
   private extractPathFromLayer(layer: any): string {

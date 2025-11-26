@@ -37,12 +37,20 @@ export class ControllerAnalyzer {
   ): ControllerSchema {
     const schema: ControllerSchema = {};
 
-    // Extract request body from function parameters
-    const parameters = this.extractParameters(controllerCode);
-    if (parameters.length > 0) {
-      const bodyParam = parameters.find(p => p.isBody);
-      if (bodyParam) {
-        schema.requestBody = this.inferRequestSchema(controllerCode, bodyParam);
+    // Check if there's destructured req.body access in the code
+    const hasBodyDestructure = /(?:const|let|var)\s*\{\s*[^}]+\s*\}\s*=\s*(?:req|request)\.body/.test(controllerCode);
+    const hasBodyAccess = /(?:body|request|req)\.body\.(\w+)/.test(controllerCode);
+
+    // Extract request body from function parameters or body access
+    if (hasBodyDestructure || hasBodyAccess) {
+      schema.requestBody = this.inferRequestSchema(controllerCode, { name: 'body', isBody: true });
+    } else {
+      const parameters = this.extractParameters(controllerCode);
+      if (parameters.length > 0) {
+        const bodyParam = parameters.find(p => p.isBody);
+        if (bodyParam) {
+          schema.requestBody = this.inferRequestSchema(controllerCode, bodyParam);
+        }
       }
     }
 
@@ -91,7 +99,7 @@ export class ControllerAnalyzer {
   /**
    * Infer request schema from parameter and code analysis
    */
-  private inferRequestSchema(code: string, param: FunctionParameter): ControllerSchema['requestBody'] {
+  private inferRequestSchema(code: string, _param: FunctionParameter): ControllerSchema['requestBody'] {
     const schema: ControllerSchema['requestBody'] = {
       type: 'object',
       properties: {},
@@ -104,6 +112,17 @@ export class ControllerAnalyzer {
     const fields = new Set<string>();
     while ((match = fieldPattern.exec(code)) !== null) {
       fields.add(match[1]);
+    }
+
+    // Also extract destructured fields like: const { email, password } = req.body
+    const destructurePattern = /(?:const|let|var)\s*\{\s*([^}]+)\s*\}\s*=\s*(?:req|request)\.body/g;
+    while ((match = destructurePattern.exec(code)) !== null) {
+      const destructuredFields = match[1].split(',').map(f => f.trim().split(':')[0].trim());
+      destructuredFields.forEach(f => {
+        if (f && /^\w+$/.test(f)) {
+          fields.add(f);
+        }
+      });
     }
 
     // Convert fields to properties
@@ -185,38 +204,85 @@ export class ControllerAnalyzer {
       schema: this.inferResponseType(code),
     };
 
-    // Find error responses
+    // Find explicit status code patterns: res.status(xxx)
+    const statusPattern = /res\.status\((\d+)\)/g;
+    let match;
+    const statusCodes = new Set<string>();
+
+    while ((match = statusPattern.exec(code)) !== null) {
+      statusCodes.add(match[1]);
+    }
+
+    // Add responses for explicit status codes
+    for (const statusCode of statusCodes) {
+      if (!responses[statusCode]) {
+        responses[statusCode] = {
+          description: this.getStatusDescription(parseInt(statusCode, 10)),
+        };
+      }
+    }
+
+    // Find error responses based on patterns
     if (/throw|Error|error/.test(code)) {
-      responses['400'] = {
-        description: 'Bad request',
-      };
-      responses['500'] = {
-        description: 'Internal server error',
-      };
+      if (!responses['400']) {
+        responses['400'] = {
+          description: 'Bad request',
+        };
+      }
+      if (!responses['500']) {
+        responses['500'] = {
+          description: 'Internal server error',
+        };
+      }
     }
 
     // Check for unauthorized
     if (/401|unauthorized|auth|token|jwt/.test(code.toLowerCase())) {
-      responses['401'] = {
-        description: 'Unauthorized - Authentication required',
-      };
+      if (!responses['401']) {
+        responses['401'] = {
+          description: 'Unauthorized - Authentication required',
+        };
+      }
     }
 
     // Check for not found
     if (/404|notfound|not found|doesnt exist/.test(code.toLowerCase())) {
-      responses['404'] = {
-        description: 'Resource not found',
-      };
+      if (!responses['404']) {
+        responses['404'] = {
+          description: 'Resource not found',
+        };
+      }
     }
 
     // Check for forbidden
     if (/403|forbidden|permission/.test(code.toLowerCase())) {
-      responses['403'] = {
-        description: 'Forbidden - Insufficient permissions',
-      };
+      if (!responses['403']) {
+        responses['403'] = {
+          description: 'Forbidden - Insufficient permissions',
+        };
+      }
     }
 
     return responses;
+  }
+
+  /**
+   * Get description for HTTP status code
+   */
+  private getStatusDescription(statusCode: number): string {
+    const descriptions: Record<number, string> = {
+      200: 'Successful response',
+      201: 'Resource created successfully',
+      204: 'No content',
+      400: 'Bad request',
+      401: 'Unauthorized - Authentication required',
+      403: 'Forbidden - Insufficient permissions',
+      404: 'Resource not found',
+      409: 'Conflict',
+      422: 'Unprocessable entity',
+      500: 'Internal server error',
+    };
+    return descriptions[statusCode] || `Response with status ${statusCode}`;
   }
 
   /**
@@ -319,27 +385,42 @@ export class ControllerAnalyzer {
   extractJsDocSchema(jsDocComment: string): ControllerSchema {
     const schema: ControllerSchema = {};
 
-    // Look for @param tags for request body
-    const paramPattern = /@param\s+{(\w+)}\s+(\w+)\s*-?\s*(.+?)(?=@|\n|$)/g;
+    // Look for @param tags for request body (both req.body.field and body.field patterns)
+    const paramPattern = /@param\s+\{(\w+)\}\s+([\w.]+)\s*-?\s*(.+?)(?=@|\n\s*\*\s*@|$)/gs;
     let match;
+
+    const bodyProperties: Record<string, any> = {};
 
     while ((match = paramPattern.exec(jsDocComment)) !== null) {
       const [, type, name, description] = match;
-      if (name.includes('body') || name.includes('data')) {
-        if (!schema.requestBody) {
-          schema.requestBody = { type: 'object', properties: {} };
-        }
-        if (schema.requestBody.properties) {
-          schema.requestBody.properties[name] = {
-            type: this.normalizeType(type),
-            description: description.trim(),
-          };
-        }
+
+      // Check for req.body.xxx or body.xxx patterns
+      const bodyMatch = /(?:req\.body\.|body\.)(\w+)/.exec(name);
+      if (bodyMatch) {
+        const fieldName = bodyMatch[1];
+        bodyProperties[fieldName] = {
+          type: this.normalizeType(type),
+          description: description.trim(),
+        };
+      } else if (name.includes('body') || name.includes('data')) {
+        // Handle general body parameter
+        bodyProperties[name] = {
+          type: this.normalizeType(type),
+          description: description.trim(),
+        };
       }
     }
 
+    // Create requestBody if we found body properties
+    if (Object.keys(bodyProperties).length > 0) {
+      schema.requestBody = {
+        type: 'object',
+        properties: bodyProperties,
+      };
+    }
+
     // Look for @returns or @response tags
-    const returnsPattern = /@returns?\s+{(\w+)}\s*(.+?)(?=@|$)/s;
+    const returnsPattern = /@returns?\s+\{(\w+)\}\s*(.+?)(?=@|$)/s;
     const returnsMatch = returnsPattern.exec(jsDocComment);
 
     if (returnsMatch) {
