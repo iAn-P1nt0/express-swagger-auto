@@ -649,6 +649,130 @@ express-swagger-auto completion fish > ~/.config/fish/completions/express-swagge
 
 ---
 
+### `export` - API Client Export (v0.3.1)
+
+Export your OpenAPI spec to popular API client formats for easy team sharing and testing.
+
+```bash
+# Export to Postman
+express-swagger-auto export ./openapi.yaml --format postman
+
+# Export to Insomnia
+express-swagger-auto export ./openapi.yaml --format insomnia
+
+# Export to Bruno (git-friendly)
+express-swagger-auto export ./openapi.yaml --format bruno
+
+# Export to Hoppscotch
+express-swagger-auto export ./openapi.yaml --format hoppscotch
+
+# Export multiple formats at once
+express-swagger-auto export ./openapi.yaml --format postman,insomnia,bruno
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-f, --format` | Target format (postman\|insomnia\|bruno\|hoppscotch) | `postman` |
+| `-o, --output` | Output file path | `./api-collection.<format>` |
+| `-n, --name` | Collection name | Spec title |
+| `--env` | Include environment template (Postman only) | `false` |
+| `--variables` | Base URL variables (key=value format) | None |
+| `--group-by` | Grouping strategy (tags\|paths\|none) | `tags` |
+| `--ci` | CI mode with JSON output | `false` |
+
+**Examples:**
+
+```bash
+# Export with custom base URL variable
+express-swagger-auto export ./openapi.yaml --format postman --variables baseUrl=http://localhost:3000
+
+# Export with environment file
+express-swagger-auto export ./openapi.yaml --format postman --env
+
+# Group by path segments instead of tags
+express-swagger-auto export ./openapi.yaml --format postman --group-by paths
+
+# Export in CI with structured output
+express-swagger-auto export ./openapi.yaml --format postman --ci
+```
+
+**Supported Formats:**
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `postman` | Postman Collection v2.1 | Team collaboration, API testing |
+| `insomnia` | Insomnia v4 | Lightweight testing, Git-friendly |
+| `bruno` | Bruno collection | Git-native API client |
+| `hoppscotch` | Hoppscotch JSON | Web-based testing |
+
+---
+
+### `examples` - Example Generation (v0.3.1)
+
+Generate realistic example values for request/response bodies using smart field detection.
+
+```bash
+# Preview generated examples
+express-swagger-auto examples ./openapi.yaml --preview
+
+# Generate and update spec in place
+express-swagger-auto examples ./openapi.yaml --inplace
+
+# Generate with reproducible seed
+express-swagger-auto examples ./openapi.yaml --seed 12345 --output ./openapi-with-examples.yaml
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-o, --output` | Output file path | stdout |
+| `--inplace` | Modify spec file directly | `false` |
+| `--seed` | Random seed for reproducibility | `undefined` |
+| `--overwrite` | Overwrite existing examples | `false` |
+| `--preview` | Preview changes without writing | `false` |
+| `-f, --format` | Preview format (text\|json\|markdown) | `text` |
+| `--ci` | CI mode with JSON output | `false` |
+
+**Smart Field Detection:**
+
+The command automatically detects field patterns and generates appropriate values:
+
+| Field Pattern | Generated Value |
+|---------------|-----------------|
+| `*email*` | `john.doe@example.com` |
+| `firstName`, `*name*` | `John`, `Jane Smith` |
+| `*phone*`, `*mobile*` | `+1-555-123-4567` |
+| `*url*`, `*uri*` | `https://example.com/...` |
+| `*image*`, `*avatar*` | `https://picsum.photos/400/400` |
+| `id`, `*uuid*` | `550e8400-e29b-41d4-a716-446655440000` |
+| `createdAt`, `*timestamp*` | `2024-01-15T10:30:00Z` |
+| `*price*`, `*amount*` | `29.99`, `1500.00` |
+| `*address*`, `*street*` | `123 Main St` |
+| `*city*` | `New York` |
+| `*status*` | `active`, `pending` |
+| `is_*`, `has_*` | `true`, `false` |
+
+**Examples:**
+
+```bash
+# Preview what will be generated
+express-swagger-auto examples ./openapi.yaml --preview --format markdown
+
+# Generate with consistent output (for testing)
+express-swagger-auto examples ./openapi.yaml --seed 42 --inplace
+
+# Overwrite existing examples
+express-swagger-auto examples ./openapi.yaml --overwrite --inplace
+
+# CI mode with JSON output
+express-swagger-auto examples ./openapi.yaml --ci
+```
+
+---
+
 ### `diff` - Breaking Change Detection (v0.4.0)
 
 Compare two OpenAPI specs to detect breaking changes.

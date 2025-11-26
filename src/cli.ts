@@ -952,6 +952,286 @@ program
   });
 
 // ============================================================
+// EXPORT COMMAND
+// ============================================================
+
+program
+  .command('export')
+  .description('Export OpenAPI spec to API client formats (Postman, Insomnia, Bruno, Hoppscotch)')
+  .argument('[specPath]', 'Path to OpenAPI spec file', './openapi.json')
+  .option('-f, --format <format>', 'Target format (postman|insomnia|bruno|hoppscotch)', 'postman')
+  .option('-o, --output <path>', 'Output file path')
+  .option('-n, --name <name>', 'Collection name')
+  .option('--env', 'Include environment template', false)
+  .option('--variables <vars...>', 'Base URL variables (key=value format)')
+  .option('--group-by <strategy>', 'Grouping strategy (tags|paths|none)', 'tags')
+  .option('--ci', 'CI mode with structured output', false)
+  .action(async function (specPath: string, options: any) {
+    const yaml = await import('js-yaml');
+    const {
+      exportSpec,
+      exportSpecWithEnv,
+      getFileExtension,
+      getEnvironmentFileExtension,
+    } = await import('./cli/export');
+    
+    const isCiMode = options.ci || process.env.CI === 'true';
+    const supportedFormats = ['postman', 'insomnia', 'bruno', 'hoppscotch'];
+
+    try {
+      // Validate format
+      const formats = options.format.split(',').map((f: string) => f.trim().toLowerCase());
+      for (const format of formats) {
+        if (!supportedFormats.includes(format)) {
+          if (isCiMode) {
+            console.log(JSON.stringify({ 
+              success: false, 
+              error: `Unsupported format: ${format}. Supported: ${supportedFormats.join(', ')}` 
+            }));
+          } else {
+            console.error(colors.red(`✗ Unsupported format: ${format}`));
+            console.error(colors.yellow(`   Supported formats: ${supportedFormats.join(', ')}\n`));
+          }
+          process.exit(1);
+        }
+      }
+
+      // Resolve spec path
+      const resolvedPath = path.resolve(specPath);
+      
+      if (!fs.existsSync(resolvedPath)) {
+        if (isCiMode) {
+          console.log(JSON.stringify({ 
+            success: false, 
+            error: `Spec file not found: ${resolvedPath}` 
+          }));
+        } else {
+          console.error(colors.red(`✗ Spec file not found: ${resolvedPath}`));
+        }
+        process.exit(1);
+      }
+      
+      // Read and parse spec
+      const content = fs.readFileSync(resolvedPath, 'utf-8');
+      let spec: any;
+      
+      if (resolvedPath.endsWith('.yaml') || resolvedPath.endsWith('.yml')) {
+        spec = yaml.load(content);
+      } else {
+        spec = JSON.parse(content);
+      }
+
+      // Parse variables
+      const variables: Record<string, string> = {};
+      if (options.variables) {
+        for (const v of options.variables) {
+          const [key, value] = v.split('=');
+          if (key && value !== undefined) {
+            variables[key] = value;
+          }
+        }
+      }
+
+      const exportOptions = {
+        format: options.format,
+        name: options.name,
+        includeEnv: options.env,
+        variables,
+        groupBy: options.groupBy,
+      };
+
+      const results: { format: string; file: string; envFile?: string }[] = [];
+
+      // Export each format
+      for (const format of formats) {
+        const extension = getFileExtension(format);
+        const baseName = options.output || `./api-collection`;
+        const outputPath = formats.length > 1 
+          ? `${baseName}${extension}`
+          : options.output || `${baseName}${extension}`;
+        
+        const resolvedOutput = path.resolve(outputPath);
+
+        if (options.env && format === 'postman') {
+          // Export with environment
+          const { collection, environment } = exportSpecWithEnv(spec, format, exportOptions);
+          
+          fs.writeFileSync(resolvedOutput, collection, 'utf-8');
+          
+          if (environment) {
+            const envExtension = getEnvironmentFileExtension(format);
+            const envOutputPath = resolvedOutput.replace(extension, envExtension);
+            fs.writeFileSync(envOutputPath, environment, 'utf-8');
+            results.push({ format, file: resolvedOutput, envFile: envOutputPath });
+          } else {
+            results.push({ format, file: resolvedOutput });
+          }
+        } else {
+          // Export without environment
+          const output = exportSpec(spec, format, exportOptions);
+          fs.writeFileSync(resolvedOutput, output, 'utf-8');
+          results.push({ format, file: resolvedOutput });
+        }
+      }
+
+      // Output results
+      if (isCiMode) {
+        console.log(JSON.stringify({ success: true, exports: results }));
+      } else {
+        console.log(colors.green('✓ Export complete!\n'));
+        for (const result of results) {
+          console.log(colors.blue(`  ${result.format}: `) + result.file);
+          if (result.envFile) {
+            console.log(colors.dim(`  Environment: `) + result.envFile);
+          }
+        }
+        console.log();
+      }
+
+    } catch (error) {
+      if (isCiMode) {
+        console.log(JSON.stringify({ 
+          success: false, 
+          error: (error as any).message 
+        }));
+      } else {
+        console.error(colors.red(`✗ Error: ${(error as any).message}`));
+      }
+      process.exit(1);
+    }
+  });
+
+// ============================================================
+// EXAMPLES COMMAND
+// ============================================================
+
+program
+  .command('examples')
+  .description('Generate realistic example values for request/response bodies')
+  .argument('[specPath]', 'Path to OpenAPI spec file', './openapi.json')
+  .option('-o, --output <path>', 'Output file path')
+  .option('--inplace', 'Modify spec file directly', false)
+  .option('--seed <number>', 'Random seed for reproducibility')
+  .option('--overwrite', 'Overwrite existing examples', false)
+  .option('--preview', 'Preview changes without writing', false)
+  .option('-f, --format <format>', 'Output format (text|json|markdown)', 'text')
+  .option('--ci', 'CI mode with structured output', false)
+  .action(async function (specPath: string, options: any) {
+    const yaml = await import('js-yaml');
+    const {
+      generateExamples,
+      previewExamples,
+      formatExamplesPreview,
+      setSeed,
+    } = await import('./cli/examples');
+    
+    const isCiMode = options.ci || process.env.CI === 'true';
+
+    try {
+      // Resolve spec path
+      const resolvedPath = path.resolve(specPath);
+      
+      if (!fs.existsSync(resolvedPath)) {
+        if (isCiMode) {
+          console.log(JSON.stringify({ 
+            success: false, 
+            error: `Spec file not found: ${resolvedPath}` 
+          }));
+        } else {
+          console.error(colors.red(`✗ Spec file not found: ${resolvedPath}`));
+        }
+        process.exit(1);
+      }
+      
+      // Read and parse spec
+      const content = fs.readFileSync(resolvedPath, 'utf-8');
+      let spec: any;
+      const isYaml = resolvedPath.endsWith('.yaml') || resolvedPath.endsWith('.yml');
+      
+      if (isYaml) {
+        spec = yaml.load(content);
+      } else {
+        spec = JSON.parse(content);
+      }
+
+      // Set seed if provided
+      if (options.seed) {
+        setSeed(parseInt(options.seed, 10));
+      }
+
+      const examplesOptions = {
+        seed: options.seed ? parseInt(options.seed, 10) : undefined,
+        overwrite: options.overwrite,
+      };
+
+      if (options.preview) {
+        // Preview mode - just show what would be generated
+        const examples = previewExamples(spec, examplesOptions);
+        
+        if (isCiMode) {
+          console.log(JSON.stringify({ success: true, examples }));
+        } else {
+          console.log(formatExamplesPreview(examples, options.format));
+          console.log(colors.dim(`\nTotal: ${examples.length} examples would be generated`));
+          console.log(colors.dim(`Use --inplace or --output to apply changes\n`));
+        }
+        return;
+      }
+
+      // Generate examples
+      const { spec: modifiedSpec, generated } = generateExamples(spec, examplesOptions);
+
+      // Determine output
+      const outputPath = options.output 
+        ? path.resolve(options.output)
+        : options.inplace 
+          ? resolvedPath 
+          : null;
+
+      if (outputPath) {
+        // Write to file
+        const outputContent = isYaml || outputPath.endsWith('.yaml') || outputPath.endsWith('.yml')
+          ? yaml.dump(modifiedSpec, { indent: 2, lineWidth: 120, noRefs: true })
+          : JSON.stringify(modifiedSpec, null, 2);
+        
+        fs.writeFileSync(outputPath, outputContent, 'utf-8');
+
+        if (isCiMode) {
+          console.log(JSON.stringify({ 
+            success: true, 
+            generated: generated.length,
+            output: outputPath,
+          }));
+        } else {
+          console.log(colors.green(`✓ Generated ${generated.length} examples\n`));
+          console.log(`  Output: ${outputPath}\n`);
+        }
+      } else {
+        // Output to stdout
+        if (isCiMode || options.format === 'json') {
+          const outputContent = JSON.stringify(modifiedSpec, null, 2);
+          console.log(outputContent);
+        } else {
+          console.log(formatExamplesPreview(generated, options.format));
+          console.log(colors.dim(`\nTotal: ${generated.length} examples generated`));
+          console.log(colors.dim(`Use --inplace or --output <path> to save to file\n`));
+        }
+      }
+
+    } catch (error) {
+      if (isCiMode) {
+        console.log(JSON.stringify({ 
+          success: false, 
+          error: (error as any).message 
+        }));
+      } else {
+        console.error(colors.red(`✗ Error: ${(error as any).message}`));
+      }
+      process.exit(1);
+    }
+  });
+
+// ============================================================
 // INIT COMMAND
 // ============================================================
 
