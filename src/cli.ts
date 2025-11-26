@@ -6,6 +6,7 @@ const path = require('path');
 // Import internal modules
 const { RouteDiscovery } = require('./core/RouteDiscovery');
 const { SpecGenerator } = require('./core/SpecGenerator');
+const { FileWatcher } = require('./watch/FileWatcher');
 
 // Read package.json for version
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
@@ -33,6 +34,51 @@ program
   .option('--description <string>', 'API description', '')
   .action(async function (options: any) {
     try {
+      const generateSpec = async () => {
+        // Load Express app dynamically
+        let app;
+        try {
+          delete require.cache[path.resolve(options.input)];
+          const module = require(path.resolve(options.input));
+          app = module.default || module;
+        } catch (error) {
+          console.error(chalk.red(`✗ Failed to load Express app: ${(error as any).message}`));
+          return false;
+        }
+
+        // Get API info
+        const apiInfo = {
+          title: options.title || getPackageTitle(),
+          version: options.version || getPackageVersion(),
+          description: options.description || '',
+        };
+
+        // Create generator config
+        const config = {
+          info: apiInfo,
+        };
+
+        // Discover routes
+        const discovery = new RouteDiscovery();
+        const routes = discovery.discover(app);
+
+        // Generate spec
+        const generator = new SpecGenerator(config);
+        const spec = generator.generate(routes);
+
+        // Ensure output directory exists
+        const outputDir = path.dirname(options.output);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+
+        // Write spec to file
+        fs.writeFileSync(options.output, JSON.stringify(spec, null, 2));
+        const specSize = (JSON.stringify(spec).length / 1024).toFixed(2);
+        console.log(chalk.green(`✓ Updated spec (${routes.length} routes, ${specSize}KB)\n`));
+        return true;
+      };
+
       console.log(chalk.blue('📋 Generating OpenAPI specification...\n'));
 
       // Validate input file exists
@@ -42,57 +88,43 @@ program
         process.exit(1);
       }
 
-      // Load Express app dynamically
-      let app;
-      try {
-        const module = require(resolvedInput);
-        app = module.default || module;
-      } catch (error) {
-        console.error(chalk.red(`✗ Failed to load Express app: ${(error as any).message}`));
+      // Initial generation
+      const success = await generateSpec();
+      if (!success) {
         process.exit(1);
       }
 
-      // Get API info
-      const apiInfo = {
-        title: options.title || getPackageTitle(),
-        version: options.version || getPackageVersion(),
-        description: options.description || '',
-      };
-
-      // Create generator config
-      const config = {
-        info: apiInfo,
-      };
-
-      // Discover routes
-      console.log(chalk.gray('→ Discovering routes...'));
-      const discovery = new RouteDiscovery();
-      const routes = discovery.discover(app);
-      console.log(chalk.green(`✓ Found ${routes.length} routes\n`));
-
-      // Generate spec
-      console.log(chalk.gray('→ Generating OpenAPI specification...'));
-      const generator = new SpecGenerator(config);
-      const spec = generator.generate(routes);
-
-      // Ensure output directory exists
-      const outputDir = path.dirname(options.output);
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-
-      // Write spec to file
-      fs.writeFileSync(options.output, JSON.stringify(spec, null, 2));
-      const specSize = (JSON.stringify(spec).length / 1024).toFixed(2);
-      console.log(chalk.green(`✓ Spec written to ${options.output} (${specSize}KB)\n`));
+      console.log(chalk.blue('✅ Done!\n'));
 
       // Watch mode
       if (options.watch) {
         console.log(chalk.yellow('👀 Watch mode enabled. Watching for changes...\n'));
-        console.log(chalk.gray('(Watch mode implementation coming in Phase 4)'));
-      }
 
-      console.log(chalk.blue('✅ Done!\n'));
+        const watcher = new FileWatcher({
+          paths: ['src/**', 'lib/**'],
+          debounce: 500,
+          ignored: ['node_modules', '.git', 'dist', 'build', '**/*.test.ts', '**/*.spec.ts'],
+        });
+
+        watcher.onChange(async (eventType: any, filePath: any) => {
+          console.log(chalk.gray(`→ File ${eventType}: ${filePath}`));
+          console.log(chalk.gray('→ Regenerating specification...\n'));
+
+          const updated = await generateSpec();
+          if (updated) {
+            console.log(chalk.gray(`Press Ctrl+C to stop watching\n`));
+          }
+        });
+
+        await watcher.start();
+
+        // Handle graceful shutdown
+        process.on('SIGINT', async () => {
+          console.log('\n\n' + chalk.yellow('👋 Stopping file watcher...\n'));
+          await watcher.stop();
+          process.exit(0);
+        });
+      }
     } catch (error) {
       console.error(chalk.red(`✗ Error: ${(error as any).message}`));
       process.exit(1);
