@@ -56,13 +56,14 @@ pnpm dev
 - Pure JavaScript (Node.js)
 - Express.js 4.x
 - Joi for schema validation
-- Manual route metadata (JSDoc parser is Phase 3)
+- JSDoc parser for automatic metadata extraction (Phase 3 Complete)
 
 **Key Features**:
 - Product catalog API with pagination
 - JSDoc-style inline documentation
 - Joi schema validation and OpenAPI conversion
 - Query parameter filtering
+- Automatic JSDoc parsing integration
 
 **API Endpoints**:
 - GET /products - Get all products (with pagination)
@@ -81,7 +82,7 @@ pnpm install
 pnpm start
 ```
 
-**Note**: The JSDoc parser is planned for Phase 3. Currently uses manual route metadata alongside JSDoc comments to show intended workflow.
+**Note**: The JSDoc parser is fully implemented (Phase 3 Complete) and automatically parses JSDoc comments to extract OpenAPI metadata.
 
 ## Example 3: Runtime Example
 
@@ -162,12 +163,13 @@ All examples use the local build of `express-swagger-auto` via `file:../..` in p
 - No version drift between examples and package
 - Easy development iteration
 
-## Next Steps
+## Status Updates
 
-After Phase 3 JSDoc parser implementation:
-- Update jsdoc-example to use automatic JSDoc parsing
-- Remove manual route metadata from jsdoc-example
-- Add more complex JSDoc examples (nested objects, arrays, etc.)
+**Phase 3 JSDoc parser implementation is COMPLETE:**
+- JSDoc parser (`JsDocParser.ts`) fully implemented and tested (20 tests)
+- Automatic route discovery with JSDoc metadata extraction
+- JSDoc-RouteDiscovery integration working
+- All example apps validated and working
 
 ## Files Created
 
