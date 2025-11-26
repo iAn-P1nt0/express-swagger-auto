@@ -274,7 +274,7 @@ express-swagger-auto serve --port 8080 --spec ./api-spec.json
 
 #### Note
 
-The `serve` command is a placeholder for Phase 4. For now, you can serve Swagger UI using:
+The `serve` command is a stub implementation. For now, you can serve Swagger UI using:
 
 1. **Use the middleware** in your Express app:
 
@@ -304,9 +304,9 @@ express-swagger-auto migrate <source> [options]
 
 | Argument | Description | Supported |
 |----------|-------------|-----------|
-| `swagger-jsdoc` | Migrate from swagger-jsdoc | ✅ Phase 4 |
-| `tsoa` | Migrate from tsoa | ✅ Phase 4 |
-| `express-oas-generator` | Migrate from express-oas-generator | ✅ Phase 4 |
+| `swagger-jsdoc` | Migrate from swagger-jsdoc | 🔜 Planned |
+| `tsoa` | Migrate from tsoa | 🔜 Planned |
+| `express-oas-generator` | Migrate from express-oas-generator | 🔜 Planned |
 
 #### Examples
 
@@ -316,7 +316,7 @@ express-swagger-auto migrate swagger-jsdoc
 
 #### Note
 
-The `migrate` command is planned for Phase 4. It will help convert JSDoc comments from other tools to express-swagger-auto format.
+The `migrate` command is a stub implementation. Full migration support is planned for a future release.
 
 ## Global Options
 

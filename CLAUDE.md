@@ -18,13 +18,14 @@ This document translates the uploaded research blueprint into actionable policie
 5. **DX Surfaces**: CLI (`npx express-swagger-auto generate|serve|validate|migrate`) + middleware to expose `/api-docs` + `/openapi.json`.
 
 ## Phase Roadmap (from research)
-| Phase | Focus | Definition of Done |
+| Phase | Focus | Status |
 | --- | --- | --- |
-| 1 | Core foundation | TypeScript scaffolding, route discovery, baseline spec + Swagger UI integration, Vitest harness |
-| 2 | Schema extraction | Zod/Joi/Yup adapters, plugin API, runtime schema inference |
-| 3 | Advanced parsing | AST tooling, decorator system, example + type inference engine |
-| 4 | Production polish | Security detection, perf tuning (<50 ms/100 routes), hot reload, CLI, migration helpers |
-| 5 | Release | Docs site, examples, CI/CD, npm publish, feedback loop |
+| 1 | Core foundation | ✅ Complete |
+| 2 | Schema extraction | ✅ Complete |
+| 3 | Advanced parsing | ✅ Complete |
+| 4 | Production polish | ✅ Complete |
+| 5 | Release | ✅ Complete |
+| 6 | Documentation & Examples | 🚀 Current |
 
 ## Decision Rules
 - **Spec Target**: Default to OpenAPI 3.1. Downgrade to 3.0 only with documented constraint; update README + issue tracker accordingly.

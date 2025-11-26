@@ -2,9 +2,9 @@
 
 **Status**: ✅ PUBLISHED
 
-**Version**: 0.1.0
+**Version**: 0.2.3
 
-**Published**: December 2024 (4 days ago)
+**Published**: November 2024
 
 **Published By**: ian-p1nt0 (ianpinto1980@gmail.com)
 
@@ -14,7 +14,7 @@
 
 ### Package Information
 - **Package Name**: express-swagger-auto
-- **Current Version**: 0.1.0
+- **Current Version**: 0.2.3
 - **License**: MIT
 - **Repository**: https://github.com/iAn-P1nt0/express-swagger-auto
 - **Homepage**: https://github.com/iAn-P1nt0/express-swagger-auto#readme
@@ -299,8 +299,8 @@ npm list express-swagger-auto
 
 **npm Link**: https://www.npmjs.com/package/express-swagger-auto
 
-**Version**: 0.1.0
+**Version**: 0.2.3
 
-**Last Updated**: December 2024
+**Last Updated**: November 2024
 
-**Next Release**: v0.2.0 (Phase 6 - Q1 2025)
+**Current Phase**: Phase 6 - Documentation & Examples

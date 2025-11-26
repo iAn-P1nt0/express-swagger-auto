@@ -2,8 +2,6 @@
 
 This example demonstrates how to use JSDoc comments with `express-swagger-auto` to document your Express.js API.
 
-**Note**: JSDoc parser implementation is planned for Phase 3. This example currently uses manual route metadata alongside JSDoc comments to show the intended workflow.
-
 ## Features
 
 - ✅ JSDoc-style inline documentation
@@ -11,7 +9,7 @@ This example demonstrates how to use JSDoc comments with `express-swagger-auto` 
 - ✅ Full CRUD operations (Create, Read, Update, Delete)
 - ✅ Query parameter handling (pagination, filtering)
 - ✅ Automatic Swagger UI generation
-- ⏳ JSDoc parser (Phase 3)
+- ✅ JSDoc parser integration (Phase 3 Complete)
 
 ## Prerequisites
 
@@ -198,24 +196,27 @@ app.use(createSwaggerUIMiddleware({
 }));
 ```
 
-## Phase 3: Automatic JSDoc Parsing
+## Automatic JSDoc Parsing (Phase 3 Complete)
 
-When Phase 3 is implemented, the manual route metadata will be replaced with automatic parsing:
+With Phase 3 JSDoc parser implementation, routes are automatically parsed:
 
 ```javascript
-// Phase 3: This will work automatically
+// Automatic JSDoc parsing
 const discovery = new RouteDiscovery();
-const routes = discovery.discover(app); // Will parse JSDoc comments
+const routes = discovery.discover(app, {
+  enableJsDocParsing: true,
+  jsDocParser: new JsDocParser({ sourceFiles: [__filename] })
+}); // Parses JSDoc comments automatically
 
 const spec = generator.generate(routes);
 ```
 
 ## Key Concepts
 
-- **JSDoc Comments**: Inline documentation that will be parsed in Phase 3
+- **JSDoc Comments**: Inline documentation automatically parsed by the JSDoc parser
 - **Joi Schemas**: Define data structures with validation
 - **JoiAdapter**: Convert Joi schemas to OpenAPI schemas
-- **Manual Metadata**: Temporary approach until JSDoc parser ships
+- **JsDocParser**: Automatically extract OpenAPI metadata from JSDoc comments
 - **SpecGenerator**: Generate OpenAPI 3.1 specification
 - **Swagger UI**: Interactive API documentation
 
@@ -225,7 +226,7 @@ const spec = generator.generate(routes);
 - 🔒 **Runtime Validation**: Joi validates requests automatically
 - ✅ **No TypeScript Required**: Pure JavaScript development
 - 🎨 **Clean Code**: Documentation lives alongside route handlers
-- 🚀 **Future-Proof**: Will auto-generate when Phase 3 lands
+- 🚀 **Auto-Generated**: JSDoc parser automatically extracts OpenAPI metadata
 
 ## Next Steps
 
@@ -233,4 +234,4 @@ const spec = generator.generate(routes);
 - Try modifying Joi schemas and see Swagger UI update
 - Add new endpoints following the JSDoc pattern
 - Check out the decorator-example for TypeScript approach
-- Stay tuned for Phase 3 JSDoc parser implementation
+- Refer to [JSDoc Tags Reference](../../docs/JSDOC_TAGS.md) for supported tags

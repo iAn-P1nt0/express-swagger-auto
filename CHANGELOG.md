@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-11-26
+
+### Added
+- Updated documentation to reflect Phase 4 and 5 completion
+- Improved error handling for ES module and directory import errors in CLI
+
+### Fixed
+- CLI generate command now provides helpful guidance for ES module projects
+
+## [0.2.2] - 2025-11-26
+
+### Added
+- Package exports for middleware and decorators subpaths
+- Improved build configuration with tsup
+
+## [0.2.1] - 2025-11-26
+
+### Fixed
+- Build and packaging improvements
+- TypeScript declaration file generation
+
+## [0.2.0] - 2025-11-26
+
+### Added
+- FileWatcher with 14 comprehensive tests
+- SecurityDetector with 25 tests for auto-detection
+- CLI watch mode integration
+- Performance benchmarking suite
+
 ## [0.1.0] - 2025-11-26
 
 ### Added
@@ -26,8 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **validate command**: OpenAPI spec validation with required field checking
   - Options: `--strict` for enhanced validation
   - Detailed error reporting with path and operation counts
-- **serve command**: Placeholder for Swagger UI server (Phase 4.5)
-- **migrate command**: Placeholder for tool migration helpers (Phase 4.5)
+- **serve command**: Stub for Swagger UI server (planned)
+- **migrate command**: Stub for tool migration helpers (planned)
 - **Professional UX**: Color-coded output with chalk, comprehensive help system
 
 #### Security Detection
@@ -118,22 +147,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for Phase 5 (Release Polish)
+### Planned for Phase 6 (Documentation & Examples)
 - Documentation website with VitePress/Docusaurus
-- GitHub CI/CD workflows (test, lint, publish)
-- Community contribution guidelines
-- Issue and PR templates
-- Code of conduct
-- Security vulnerability reporting policy
+- Migration guides from swagger-jsdoc, tsoa
+- Video tutorials
+- Additional example applications
 - Interactive `npx express-swagger-auto init` setup
-
-### Planned for Phase 6 (Advanced Features)
-- Web-based spec editor
-- Advanced schema inference (discriminated unions, recursive types)
-- Real-time spec validation
-- API testing integration (Jest/Vitest helpers)
-- Performance optimizations (route caching, lazy schema resolution)
-- Parallel file processing
 
 ### Future Considerations
 - GraphQL support
@@ -141,6 +160,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAPI 4.0 support
 - Multi-language documentation generation
 - SDK auto-generation from specs
+- Web-based spec editor
+- Advanced schema inference (discriminated unions, recursive types)
 
 ---
 
@@ -172,11 +193,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation (CLI, Security, Performance)
 - 191 passing tests with 100% success rate
 
-### Phase 5: Release Preparation (Current)
+### Phase 5: Release Preparation ✅
 - Community setup (CONTRIBUTING, CODE_OF_CONDUCT)
 - CI/CD automation (GitHub workflows)
+- npm package published (v0.2.3)
 - Documentation organization
 - Professional project baseline
+
+### Phase 6: Documentation & Examples (Current)
+- Expanding documentation
+- Additional examples planned
 
 ---
 

@@ -716,5 +716,5 @@ app.listen(3000, () => {
 ## See Also
 
 - [Main README](../README.md)
-- [Phase 3 Progress](./PHASE_3_PROGRESS.md)
+- [API Reference](./API.md)
 - [Examples Directory](../examples/)
