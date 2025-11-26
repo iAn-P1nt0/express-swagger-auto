@@ -50,7 +50,36 @@ program
           const module = require(path.resolve(options.input));
           app = module.default || module;
         } catch (error) {
-          console.error(colors.red(`✗ Failed to load Express app: ${(error as any).message}`));
+          const errorMsg = (error as any).message || String(error);
+
+          // Check for ES module directory import error
+          if (errorMsg.includes('is not supported resolving ES modules')) {
+            console.error(colors.red('\n✗ ES Module Import Error\n'));
+            console.error(colors.yellow('Your project uses ES modules (ESM), but express-swagger-auto'));
+            console.error(colors.yellow('loads apps using CommonJS require().\n'));
+            console.error(colors.yellow('Solutions:\n'));
+            console.error(colors.yellow('1. Build your TypeScript/ESM code first:'));
+            console.error(colors.yellow('   npm run build\n'));
+            console.error(colors.yellow('2. Point to the compiled/transpiled file:'));
+            console.error(colors.yellow(`   npx express-swagger-auto generate -i dist/index.js ...\n`));
+            console.error(colors.yellow('3. Or ensure your entry file uses CommonJS require():'));
+            console.error(colors.yellow('   const middlewares = require("./middlewares");\n'));
+            return false;
+          }
+
+          // Check for other module-related errors
+          if (errorMsg.includes('directory import') || errorMsg.includes('Cannot find module')) {
+            console.error(colors.red(`\n✗ Failed to load Express app:\n`));
+            console.error(colors.yellow(`  Error: ${errorMsg}\n`));
+            console.error(colors.yellow('Solutions:\n'));
+            console.error(colors.yellow('1. Ensure the input file exists and is readable'));
+            console.error(colors.yellow('2. Use absolute or relative paths from current working directory'));
+            console.error(colors.yellow('3. If using TypeScript, ensure it\'s compiled to JavaScript first'));
+            console.error(colors.yellow('4. For ES modules, point to the compiled/built version\n'));
+            return false;
+          }
+
+          console.error(colors.red(`✗ Failed to load Express app: ${errorMsg}`));
           return false;
         }
 
