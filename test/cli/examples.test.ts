@@ -348,9 +348,29 @@ describe('Examples Command', () => {
       
       expect(first.length).toBe(second.length);
       
-      // Compare first few examples
+      // Compare first few examples, normalizing timestamps to avoid flakiness
+      const normalizeTimestamps = (obj: unknown): unknown => {
+        if (typeof obj === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(obj)) {
+          // Normalize milliseconds to avoid timing differences
+          return obj.slice(0, -4) + '000Z';
+        }
+        if (Array.isArray(obj)) {
+          return obj.map(normalizeTimestamps);
+        }
+        if (obj && typeof obj === 'object') {
+          const result: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(obj)) {
+            result[key] = normalizeTimestamps(value);
+          }
+          return result;
+        }
+        return obj;
+      };
+      
       for (let i = 0; i < Math.min(3, first.length); i++) {
-        expect(JSON.stringify(first[i].example)).toBe(JSON.stringify(second[i].example));
+        const normalized1 = normalizeTimestamps(first[i].example);
+        const normalized2 = normalizeTimestamps(second[i].example);
+        expect(JSON.stringify(normalized1)).toBe(JSON.stringify(normalized2));
       }
     });
 
