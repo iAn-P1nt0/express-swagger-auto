@@ -148,8 +148,11 @@ export class RouteDiscovery {
       return;
     }
 
-    // Support both app._router.stack and router.stack
-    const stack = (app as any)._router?.stack || (app as any).stack;
+    // Support Express 4 (app._router.stack), Express 5 (app.router.stack), and nested routers (app.stack)
+    const stack =
+      (app as any)._router?.stack || // Express 4
+      (app as any).router?.stack || // Express 5
+      (app as any).stack; // Nested router
 
     if (!Array.isArray(stack)) {
       return;
@@ -295,13 +298,19 @@ export class RouteDiscovery {
   }
 
   private extractPathFromLayer(layer: any): string {
-    // Try to get path from layer.regexp
+    // Express 4: Use layer.regexp
     if (layer.regexp) {
       const extracted = this.extractPathFromRegexp(layer.regexp);
       if (extracted) return extracted;
     }
 
-    // Try to get path from layer.path
+    // Express 5: Use layer.matchers to probe for the path
+    if (layer.matchers && layer.matchers.length > 0) {
+      const extracted = this.extractPathFromExpress5Matcher(layer);
+      if (extracted) return extracted;
+    }
+
+    // Fallback: Try to get path from layer.path property
     if (typeof layer.path === 'string') {
       return layer.path;
     }
@@ -309,12 +318,150 @@ export class RouteDiscovery {
     return '';
   }
 
+  /**
+   * Extract path from Express 5 matcher by probing with known route paths
+   * Express 5 uses compiled matcher functions instead of regexes
+   */
+  private extractPathFromExpress5Matcher(layer: any): string {
+    const matcher = layer.matchers?.[0];
+    if (!matcher || typeof matcher !== 'function') return '';
+
+    // First check if this is a root matcher (matches "/")
+    const rootResult = matcher('/');
+    if (rootResult) return '';
+
+    // For Express 5, we need to probe the matcher to find what prefix it expects
+    // We can do this by:
+    // 1. Looking at nested routes and using their paths to probe
+    // 2. Using common path segments
+
+    // Try to find nested routes to use as probes
+    const nestedRoutes = this.findNestedRoutePaths(layer.handle);
+    if (nestedRoutes.length > 0) {
+      // Use the first nested route path to probe for the prefix
+      const probePath = nestedRoutes[0];
+      const prefix = this.probeMatcherForPrefix(matcher, probePath);
+      if (prefix) return prefix;
+    }
+
+    // Fallback: probe with common path patterns
+    return this.probeMatcherWithCommonPaths(matcher);
+  }
+
+  /**
+   * Find route paths from a nested router/handler
+   */
+  private findNestedRoutePaths(handle: any): string[] {
+    const paths: string[] = [];
+    const stack = handle?.stack;
+
+    if (!Array.isArray(stack)) return paths;
+
+    for (const layer of stack) {
+      if (layer.route?.path) {
+        paths.push(layer.route.path);
+      } else if (layer.handle?.stack) {
+        // Recursively find paths from deeper nesting
+        const nested = this.findNestedRoutePaths(layer.handle);
+        paths.push(...nested);
+      }
+    }
+
+    return paths;
+  }
+
+  /**
+   * Probe the matcher to find what prefix makes a given suffix path match
+   */
+  private probeMatcherForPrefix(matcher: (path: string) => any, suffixPath: string): string {
+    // Common path prefixes to try - prioritized by likelihood
+    const commonPrefixes = [
+      // Versioned API paths
+      '/api/v1', '/api/v2', '/api/v3', '/v1', '/v2', '/v3',
+      // Common resource paths
+      '/api', '/users', '/products', '/orders', '/items',
+      '/posts', '/comments', '/auth', '/admin', '/public',
+      // Transaction/business paths
+      '/transaction', '/transactions', '/payment', '/payments',
+      '/transaction/v1', '/transaction/v2',
+      // Health/status paths
+      '/health', '/status', '/metrics', '/info',
+    ];
+
+    // Also try single letter prefixes for broader coverage
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+
+    // First try common prefixes
+    for (const prefix of commonPrefixes) {
+      const testPath = prefix + suffixPath;
+      const result = matcher(testPath);
+      if (result && result.path === prefix) {
+        return prefix;
+      }
+    }
+
+    // Then try building paths segment by segment
+    for (const letter of alphabet) {
+      const singlePrefix = '/' + letter;
+      const testPath = singlePrefix + suffixPath;
+      const result = matcher(testPath);
+
+      if (result) {
+        const matchedPath = result.path?.replace(/\/$/, '');
+        if (matchedPath) {
+          return matchedPath;
+        }
+      }
+    }
+
+    return '';
+  }
+
+  /**
+   * Probe the matcher with common path patterns when no nested routes are available
+   */
+  private probeMatcherWithCommonPaths(matcher: (path: string) => any): string {
+    // Use a test suffix that's unlikely to be a real route
+    const testSuffix = '/__probe_test__';
+
+    // Common path prefixes
+    const prefixes = [
+      '/api', '/api/v1', '/api/v2', '/v1', '/v2',
+      '/users', '/products', '/auth', '/admin',
+      '/transaction', '/transaction/v1',
+    ];
+
+    for (const prefix of prefixes) {
+      const result = matcher(prefix + testSuffix);
+      if (result && result.path) {
+        return result.path.replace(/\/$/, '');
+      }
+    }
+
+    return '';
+  }
+
   private extractPathFromRegexp(regexp: RegExp): string {
-    // Simplified path extraction from Express regex
-    // TODO(Phase 2): Improve regex parsing for complex route patterns
+    // Extract path from Express router regex patterns
+    // Express generates regexes like:
+    // - /^\/path\/?(?=\/|$)/i for routers (lookahead pattern)
+    // - /^\/path\/?$/i for routes (end pattern)
+    // - /^\/?(?=\/|$)/i for root
     const str = regexp.toString();
-    const match = str.match(/^\/\^\\\/(.+?)\\\//);
-    return match ? `/${match[1].replace(/\\\//g, '/')}` : '';
+
+    // Match path segment until optional slash + lookahead OR end marker
+    // This handles: /^\/path\/?(?=\/|$)/i -> captures \/path
+    // And:          /^\/path\/?$/i -> captures \/path
+    // And:          /^\/?(?=\/|$)/i -> captures empty string
+    const match = str.match(/^\/\^(.*?)(?:\\\/\?(?:\(\?=|\$)|$)/);
+
+    if (match && match[1]) {
+      // Unescape the path: \/ -> /
+      const path = match[1].replace(/\\\//g, '/');
+      return path || '';
+    }
+
+    return '';
   }
 
   private normalizePath(path: string): string {
