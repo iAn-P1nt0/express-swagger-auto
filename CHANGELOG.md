@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-11-28
+
+### Changed
+- Comprehensive documentation update across all files
+- Updated README.md with accurate current status and all CLI commands
+- Updated PHASE_STATUS.md to reflect Phase 6 current status
+- Updated CLAUDE.md with current component list and test counts
+- Updated docs/API.md table of contents with all components
+- Improved documentation consistency across all files
+
+### Documentation
+- 474 tests passing with 100% success rate
+- All core phases (1-5) documented as complete
+- Phase 6 (Documentation & Examples) marked as current
+
 ## [0.2.3] - 2025-11-26
 
 ### Added

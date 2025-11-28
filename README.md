@@ -2,6 +2,10 @@
 
 > Hybrid OpenAPI 3.x generator for Express.js with zero-config setup
 
+[![npm version](https://img.shields.io/npm/v/express-swagger-auto.svg)](https://www.npmjs.com/package/express-swagger-auto)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org/)
+
 Automatically generate OpenAPI 3.0/3.1 specifications and Swagger UI from Express.js REST APIs using decorators, JSDoc, and runtime capture.
 
 ## Key Differentiators
@@ -14,28 +18,23 @@ Automatically generate OpenAPI 3.0/3.1 specifications and Swagger UI from Expres
 - **Validator-Aware Schema Extraction**: Native support for Zod, Joi, and Yup with plugin architecture for custom validators
 - **Express 4 & 5 Compatible**: Handles nested routers and middleware chains
 - **Performance Optimized**: <50ms generation for 100-route apps
-- **Security First**: Automatic masking of sensitive fields in runtime capture
+- **Security First**: Automatic detection of security schemes and masking of sensitive fields
+- **Full-Featured CLI**: Generate, validate, serve, and export specs with watch mode
 
-## Recent Refactoring (v0.3.0 Beta)
+## Current Version: v0.3.2
 
-The codebase is currently undergoing a comprehensive refactoring to add:
+### ✅ All Core Phases Complete
 
-### ✅ Phase 1: Enhanced Route Discovery
-- **MiddlewareAnalyzer**: Detects authentication guards, validation, error handling, CORS, logging
-- **PathParameterExtractor**: Extracts path parameters, query parameters, converts Express patterns to OpenAPI
-- **RouteMetadataEnricher**: Enriches routes with intelligent tags, operation IDs, examples, and security information
+| Phase | Status | Focus |
+|-------|--------|-------|
+| 1 | ✅ Complete | Core foundation, route discovery, basic spec generation |
+| 2 | ✅ Complete | Schema extraction (Zod/Joi/Yup), plugin API, runtime inference |
+| 3 | ✅ Complete | JSDoc parser, decorator system, TypeScript type inference |
+| 4 | ✅ Complete | Security detection, CLI completion, file watching, hot reload |
+| 5 | ✅ Complete | CI/CD workflows, npm publish, community infrastructure |
+| 6 | 🚀 Current | Documentation site, additional examples, migration guides |
 
-### ✅ Phase 2: Schema Extraction
-- **JoiSchemaParser**: Parses Joi validation schemas and converts to OpenAPI format
-- **ControllerAnalyzer**: Analyzes controller functions to infer request/response schemas
-- **SchemaExtractor**: Orchestrates schema extraction from Joi validators, controllers, and JSDoc comments
-
-### 🚀 Coming Soon
-- **Phase 3**: Advanced parsing with TypeScript AST support and decorator handling
-- **Phase 4**: Integration into core RouteDiscovery and SpecGenerator
-- **Phase 5**: Complete test suite and production release
-
-See `REFACTORING_PLAN_v0.3.0.md` and `PHASE_2_SCHEMA_EXTRACTION.md` for detailed documentation.
+**474 tests passing** with comprehensive coverage across all features.
 
 ---
 
@@ -50,6 +49,16 @@ yarn add express-swagger-auto
 ```
 
 ## Quick Start
+
+### Initialize Your Project
+
+The fastest way to get started:
+
+```bash
+npx express-swagger-auto init
+```
+
+This will interactively guide you through setup, creating a config file and example routes.
 
 ### Basic Usage (Zero Config)
 
@@ -179,6 +188,81 @@ const openApiSchema = adapter.convert(userSchema);
 // Automatically converts to OpenAPI schema format
 ```
 
+## CLI Usage
+
+The CLI provides comprehensive tooling for generating, validating, and serving API documentation.
+
+### Commands Overview
+
+```bash
+# Initialize project with config file
+npx express-swagger-auto init
+
+# Generate OpenAPI spec
+npx express-swagger-auto generate --input ./src/app.ts --output ./openapi.json
+
+# Generate with watch mode
+npx express-swagger-auto generate --watch
+
+# Serve Swagger UI standalone
+npx express-swagger-auto serve --spec ./openapi.json --port 3000
+
+# Validate OpenAPI spec
+npx express-swagger-auto validate ./openapi.json
+
+# Validate with strict mode and security audit
+npx express-swagger-auto validate ./openapi.json --strict --security-audit
+
+# Get API statistics
+npx express-swagger-auto stats ./openapi.json
+
+# Export to Postman/Insomnia/Bruno/Hoppscotch
+npx express-swagger-auto export ./openapi.json --format postman
+
+# Generate realistic example values
+npx express-swagger-auto examples ./openapi.json --inplace
+
+# Generate shell completion
+npx express-swagger-auto completion bash >> ~/.bashrc
+
+# Migrate from other tools
+npx express-swagger-auto migrate swagger-jsdoc
+```
+
+### Configuration File
+
+express-swagger-auto supports multiple config file formats via cosmiconfig:
+
+```javascript
+// swagger-auto.config.js
+/** @type {import('express-swagger-auto').SwaggerAutoConfig} */
+module.exports = {
+  input: './src/app.ts',
+  output: './docs/openapi.yaml',
+  format: 'yaml',
+  strategies: ['jsdoc', 'decorator'],
+  info: {
+    title: 'My API',
+    version: '2.0.0',
+    description: 'Production API'
+  },
+  security: {
+    detect: true
+  },
+  watch: {
+    paths: ['src/**'],
+    ignored: ['node_modules', 'dist'],
+    debounce: 500
+  },
+  routes: {
+    include: ['/api/*'],
+    exclude: ['/internal/*']
+  }
+};
+```
+
+**📖 [Complete CLI Documentation](./docs/CLI.md)** - Full reference for all commands and options
+
 ## Examples
 
 Explore complete working examples in the [`examples/`](./examples) directory:
@@ -190,7 +274,7 @@ Explore complete working examples in the [`examples/`](./examples) directory:
 
 - **[jsdoc-example](./examples/jsdoc-example)**: JavaScript with JSDoc comments and Joi validation
   - Product catalog API with pagination
-  - JSDoc-style inline documentation (Phase 3 parser coming)
+  - JSDoc-style inline documentation
   - Manual route metadata with Joi schema conversion
 
 - **[runtime-example](./examples/runtime-example)**: Runtime schema capture with snapshot storage
@@ -204,38 +288,31 @@ Each example includes:
 - curl command examples
 - Running Swagger UI integration
 
-## CLI Usage
+## Core Features
 
-```bash
-# Generate OpenAPI spec
-npx express-swagger-auto generate --input ./src/app.ts --output ./openapi.json
+### Route Discovery
+- **Express 4 & 5 Compatible**: Full support for both Express versions
+- **Nested Router Support**: Handles deeply nested routers with cycle detection
+- **Middleware Analysis**: Detects authentication guards, validation middleware, error handlers, CORS, and logging
+- **Path Parameter Extraction**: Converts Express patterns to OpenAPI format
 
-# Serve Swagger UI standalone
-npx express-swagger-auto serve --spec ./openapi.json --port 3000
+### Schema Extraction
+- **Validator Adapters**: Native support for Zod, Joi, and Yup
+- **Plugin Architecture**: Extensible ValidatorRegistry for custom validators
+- **Controller Analysis**: Infers request/response schemas from handlers
+- **Runtime Inference**: Automatic schema detection from live requests
 
-# Validate OpenAPI spec
-npx express-swagger-auto validate ./openapi.json
+### Security Detection
+- **Auto-Detection**: Automatically identifies JWT/Bearer, API Key, OAuth2, and Basic auth
+- **Multiple Sources**: Analyzes middleware names, route metadata, and HTTP headers
+- **Safe Sanitization**: Automatic masking of sensitive fields (passwords, tokens, API keys)
 
-# Migrate from other tools
-npx express-swagger-auto migrate swagger-jsdoc
-```
-
-## Phase Roadmap
-
-| Phase | Status | Focus |
-|-------|--------|-------|
-| 1 | ✅ Complete | Core foundation, route discovery, basic spec generation |
-| 2 | ✅ Complete | Schema extraction (Zod/Joi/Yup), plugin API, runtime inference |
-| 3 | ✅ Complete | JSDoc parser, decorator system, example merging |
-| 4 | ✅ Complete | Security detection, perf tuning, hot reload, CLI completion |
-| 5 | ✅ Complete | CI/CD workflows, npm publish preparation, community infrastructure |
-| 6 | **Current** | Documentation site, additional examples, migration guides |
-
-**Phase 5 Completed**: All release preparation including CI/CD, CHANGELOG, and community infrastructure complete! See [PHASE_STATUS.md](./PHASE_STATUS.md) for details.
+### TypeScript Type Inference
+- **Full Type Support**: Primitives, arrays, unions, intersections, generics, and utility types
+- **Confidence Scoring**: Quality metrics for inferred types
+- **Performance Caching**: Optimized for large codebases
 
 ## Configuration
-
-See `CLAUDE.md` for architecture guardrails and `AGENTS.md` for agent roster.
 
 ### GeneratorConfig
 
@@ -250,19 +327,55 @@ interface GeneratorConfig {
 }
 ```
 
+### SwaggerAutoConfig (for config files)
+
+```typescript
+interface SwaggerAutoConfig {
+  input?: string;                 // Entry point file
+  output?: string;                // Output path
+  format?: 'json' | 'yaml';       // Output format
+  strategies?: Array<'jsdoc' | 'decorator' | 'runtime'>;
+  info?: OpenAPIInfo;
+  servers?: OpenAPIServer[];
+  security?: { detect?: boolean };
+  watch?: { paths?: string[]; ignored?: string[]; debounce?: number };
+  routes?: { include?: string[]; exclude?: string[]; tags?: string[] };
+  ci?: { enabled?: boolean; outputFormat?: 'text' | 'json' | 'sarif' };
+}
+```
+
+See `CLAUDE.md` for architecture guardrails and `AGENTS.md` for agent roster.
+
 ## Performance Budgets
 
 - Route discovery: O(n) relative to layer count
-- Spec generation: <50ms for 100 routes (Phase 4 target)
+- Spec generation: <50ms for 100 routes
 - CLI file watching: Debounce ≥500ms, throttle ≤1Hz
+- Memory: <50MB for 1000+ routes
+
+See [Performance Guide](./docs/PERFORMANCE.md) for optimization tips and benchmarking.
 
 ## Security
 
 - **Runtime capture disabled by default in production**
 - **Automatic sanitization of sensitive fields** (password, token, apiKey, etc.)
+- **Security scheme auto-detection** (JWT, API Key, OAuth2, Basic)
 - **No secrets in generated specs or logs**
+- **HTTPS-only recommendations for production**
+
+See [Security Guide](./docs/SECURITY.md) for production best practices.
+
+## Documentation
+
+- **[API Reference](./docs/API.md)** - Complete API documentation
+- **[CLI Guide](./docs/CLI.md)** - Command-line interface reference
+- **[JSDoc Tags](./docs/JSDOC_TAGS.md)** - Supported JSDoc annotations
+- **[Security Guide](./docs/SECURITY.md)** - Security best practices
+- **[Performance Guide](./docs/PERFORMANCE.md)** - Optimization and benchmarking
 
 ## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and contribution guidelines.
 
 See `AGENTS.md` for agent collaboration protocol and `docs/AGENT_LOG.md` for development history.
 

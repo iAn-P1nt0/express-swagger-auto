@@ -1,11 +1,14 @@
 # Phase Status Report - express-swagger-auto
 
-**Generated**: 2025-01-XX
-**Current Phase**: Phase 4 (Production Polish)
+**Generated**: 2025-11-28
+**Current Phase**: Phase 6 (Documentation & Examples)
+**Version**: 0.3.2
 
 ## Executive Summary
 
-**Phase 3 is COMPLETE** and production-ready! All core JSDoc parsing, AST tooling, TypeScript type inference, and all component integrations have been implemented and tested. The project is well into Phase 4 (Production Polish).
+**All core phases (1-5) are COMPLETE** and production-ready! The project has comprehensive route discovery, schema extraction, JSDoc parsing, TypeScript type inference, security detection, full CLI implementation, and CI/CD infrastructure. Phase 6 (Documentation & Examples) is currently in progress.
+
+**Test Status**: 474 tests passing with 100% success rate.
 
 ---
 
@@ -19,19 +22,10 @@
 - [x] Nested router support with cycle detection
 - [x] Baseline OpenAPI 3.1 spec generation (`SpecGenerator.ts`)
 - [x] Swagger UI middleware integration (`swaggerUI.ts`)
-- [x] Vitest test harness (302 tests passing)
-- [x] MiddlewareAnalyzer for auth/validation detection (9 tests)
-- [x] PathParameterExtractor for route parameter extraction (20 tests)
-- [x] RouteMetadataEnricher for metadata enrichment (15 tests)
-
-### Test Coverage
-- RouteDiscovery: 3 tests
-- SpecGenerator: 3 tests
-- Integration: 8 tests
-- Middleware: 12 tests
-- MiddlewareAnalyzer: 9 tests
-- PathParameterExtractor: 20 tests
-- RouteMetadataEnricher: 15 tests
+- [x] Vitest test harness
+- [x] MiddlewareAnalyzer for auth/validation detection
+- [x] PathParameterExtractor for route parameter extraction
+- [x] RouteMetadataEnricher for metadata enrichment
 
 ---
 
@@ -40,26 +34,15 @@
 **Status**: All validator adapters and schema components implemented with comprehensive tests
 
 ### Deliverables
-- [x] **Zod Adapter** (15 tests) - Full schema conversion
-- [x] **Joi Adapter** (22 tests) - Full schema conversion
-- [x] **Yup Adapter** (21 tests) - Full schema conversion
-- [x] **Plugin API** - ValidatorRegistry (16 tests)
-- [x] **Runtime Schema Inference** (8 tests)
-- [x] **Snapshot Storage** (13 tests) - Persistence with deduplication
-- [x] **ControllerAnalyzer** (15 tests) - Request/response schema extraction
-- [x] **SchemaExtractor** (16 tests) - Unified schema extraction pipeline
-- [x] **JoiSchemaParser** (9 tests) - Source code Joi schema parsing
-
-### Test Coverage
-- ZodAdapter: 15 tests (primitives, objects, arrays, enums, unions, refinements)
-- JoiAdapter: 22 tests (strings, numbers, arrays, objects, alternatives, custom validators)
-- YupAdapter: 21 tests (strings, numbers, booleans, dates, arrays, objects, transformations)
-- ValidatorRegistry: 16 tests (registration, auto-detection, priority handling)
-- RuntimeCapture: 8 tests (request/response capture, sanitization, snapshot merging)
-- SnapshotStorage: 13 tests (persistence, deduplication, cleanup)
-- ControllerAnalyzer: 15 tests (body extraction, response extraction, JSDoc parsing)
-- SchemaExtractor: 16 tests (unified extraction from validators, controllers, JSDoc)
-- JoiSchemaParser: 9 tests (source code parsing, property extraction)
+- [x] **Zod Adapter** - Full schema conversion
+- [x] **Joi Adapter** - Full schema conversion
+- [x] **Yup Adapter** - Full schema conversion
+- [x] **Plugin API** - ValidatorRegistry
+- [x] **Runtime Schema Inference**
+- [x] **Snapshot Storage** - Persistence with deduplication
+- [x] **ControllerAnalyzer** - Request/response schema extraction
+- [x] **SchemaExtractor** - Unified schema extraction pipeline
+- [x] **JoiSchemaParser** - Source code Joi schema parsing
 
 ---
 
@@ -70,207 +53,129 @@
 ### Deliverables
 - [x] **JSDoc Parser Infrastructure**
   - CommentExtractor.ts - Extracts JSDoc from source files
-  - JsDocParser.ts - Main parser with glob pattern support (20 tests)
+  - JsDocParser.ts - Main parser with glob pattern support
   - JsDocTransformer.ts - Converts JSDoc to OpenAPI metadata
-- [x] **Decorator System** (8 tests)
+- [x] **Decorator System**
   - @Route, @Parameter, @RequestBody, @Response decorators
   - Metadata storage via `__openapi_metadata`
 - [x] **JSDoc-RouteDiscovery Integration**
   - Automatic JSDoc parsing during route discovery
   - Metadata merging strategies (JSDoc + decorator priority)
   - Route key matching (method + normalized path)
-- [x] **Example Merging** (11 tests)
+- [x] **Example Merging**
   - Runtime example capture
   - JSDoc example extraction
   - Intelligent merging with deduplication
-- [x] **TypeScript Type Inference Engine** (27 tests) ⭐ NEW
+- [x] **TypeScript Type Inference Engine**
   - TypeInferenceEngine.ts - Full TypeScript type parsing
-  - Primitive types (string, number, boolean, Date, etc.)
-  - Array types (T[], Array<T>)
-  - Union types (T | U, nullable unions)
-  - Intersection types (T & U)
-  - Object literal types ({ prop: type })
-  - Tuple types ([string, number])
-  - Generic types (Promise<T>, Response<T>, Map<K,V>, Set<T>)
-  - Utility types (Partial<T>, Required<T>, Pick<T,K>, Omit<T,K>)
-  - Record types (Record<K, V>)
-  - Reference types ($ref for unknown types)
+  - Primitive types, Array types, Union types, Intersection types
+  - Object literal types, Tuple types, Generic types
+  - Utility types (Partial, Required, Pick, Omit)
+  - Record types, Reference types
   - Type caching and confidence scoring
 - [x] **Working Examples**
   - decorator-example (TypeScript with Zod)
-  - jsdoc-example (JavaScript with Joi) - **VALIDATED WORKING**
+  - jsdoc-example (JavaScript with Joi)
   - runtime-example (Runtime capture)
-
-### Test Coverage
-- JsDocParser: 20 tests (all tag types, YAML payloads, route matching)
-- Decorators: 8 tests (metadata storage, composition)
-- ExampleMerger: 11 tests (runtime + JSDoc merging, deduplication)
-- TypeInferenceEngine: 27 tests (primitives, arrays, unions, intersections, generics, utilities, caching)
-
-### Key Features Implemented
-1. **Comment-based Documentation**: Full JSDoc tag support
-   - @openapi, @route, @summary, @description, @tags
-   - @param (path/query/header parameters)
-   - @requestBody with YAML schema
-   - @response with status codes
-   - @example with JSON payloads
-   - @deprecated, @security
-
-2. **AST-Free Comment Extraction**: Uses `comment-parser` library
-   - No @babel/parser needed (simpler, faster)
-   - Works with JavaScript and TypeScript
-   - Glob pattern file discovery
-   - Source location tracking
-
-3. **Hybrid Metadata Strategy**: All three approaches working
-   - Decorators (TypeScript-first)
-   - JSDoc (JavaScript-friendly)
-   - Runtime capture (zero-config)
-
-4. **TypeScript Type Inference**: Full type string parsing
-   - Converts TypeScript types to OpenAPI schemas
-   - Handles all common TypeScript patterns
-   - Confidence scoring for inference quality
-   - Caching for performance
 
 ---
 
-## Phase 4: Production Polish 🎯 READY TO START
+## Phase 4: Production Polish ✅ COMPLETE
 
-**Status**: Phase 3 exit criteria met, ready for production hardening
+**Status**: All production hardening features implemented
 
-### Roadmap Items
-
-#### 4.1 Security Detection
-- [ ] Implement security scheme auto-detection
+### Deliverables
+- [x] **Security Detection** - SecurityDetector class
   - JWT/Bearer token detection from middleware
   - API key detection from headers
   - OAuth2 flow detection
-- [ ] Enhance sensitive field sanitization
-  - Configurable field patterns
-  - Deep object scanning
-  - Custom sanitizer functions
-- [ ] Add security best practices validation
-  - Warn on missing authentication
-  - Detect insecure defaults
-  - HTTPS-only recommendations
-
-#### 4.2 Performance Optimization
-- [ ] **Route Discovery Optimization**
-  - Current: O(n) layer traversal ✅
-  - Target: Maintain O(n) with 100+ routes
-  - Add caching for repeated discoveries
-- [ ] **Spec Generation Performance**
-  - Target: <50ms for 100-route app
-  - Benchmark current performance
-  - Add lazy schema resolution
-  - Implement incremental generation
-- [ ] **JSDoc Parser Optimization**
-  - Cache parsed files (file hash-based)
-  - Incremental parsing for watch mode
-  - Parallel file processing
-- [ ] **Memory Management**
-  - Limit snapshot storage size
-  - Implement LRU cache for metadata
-  - Add memory usage metrics
-
-#### 4.3 CLI Implementation
-Current state: Skeleton commands in `cli.ts`
-
-- [ ] **Generate Command**
-  ```bash
-  express-swagger-auto generate --input ./src/app.ts --output ./openapi.json
-  ```
-  - Load Express app dynamically
-  - Run route discovery + JSDoc parsing
-  - Write spec to file
-  - Add watch mode (--watch flag)
-
-- [ ] **Serve Command**
-  ```bash
-  express-swagger-auto serve --spec ./openapi.json --port 3000
-  ```
-  - Standalone Swagger UI server
-  - Live reload on spec changes
-
-- [ ] **Validate Command**
-  ```bash
-  express-swagger-auto validate ./openapi.json
-  ```
-  - OpenAPI spec validation
-  - Schema consistency checks
-  - Security best practices audit
-
-- [ ] **Migrate Command**
-  ```bash
-  express-swagger-auto migrate swagger-jsdoc --config ./swagger.config.js
-  ```
-  - swagger-jsdoc migration
-  - tsoa migration
-  - express-oas-generator migration
-
-#### 4.4 Hot Reload & Watch Mode
-- [ ] File watching with debounce (≥500ms)
-- [ ] Incremental regeneration (only changed routes)
-- [ ] WebSocket-based live Swagger UI refresh
-- [ ] CLI progress indicators
-
-#### 4.5 Testing & Quality
-- [ ] Performance benchmarks
-  - 100-route app generation time
-  - Memory usage profiling
-  - JSDoc parsing speed
-- [ ] CLI e2e tests
-- [ ] Example app CI tests
-- [ ] Coverage target: ≥85% for `src/core/*`
-
-#### 4.6 Documentation
-- [ ] Update README with Phase 4 features
-- [ ] CLI usage guide
-- [ ] Performance tuning guide
-- [ ] Migration guides (swagger-jsdoc, tsoa)
-- [ ] Security best practices
+  - HTTP Basic authentication detection
+- [x] **File Watching** - FileWatcher class
+  - Debounced file monitoring (500ms default)
+  - Glob pattern support with excluded paths
+  - Error recovery and graceful shutdown
+- [x] **CLI Implementation**
+  - `generate` command - Full spec generation with watch mode
+  - `validate` command - OpenAPI validation with strict mode
+  - `serve` command - Standalone Swagger UI server
+  - `migrate` command - Tool migration helpers (stub)
+  - `init` command - Interactive project setup
+  - `stats` command - API statistics
+  - `completion` command - Shell completion (bash/zsh/fish/powershell)
+  - `export` command - Export to Postman/Insomnia/Bruno/Hoppscotch
+  - `examples` command - Generate realistic example values
+- [x] **Config File Support** - cosmiconfig integration
+  - JavaScript, JSON, YAML formats
+  - package.json support
+  - CLI option merging
+- [x] **CI Mode** - Structured output for automation
+  - JSON, SARIF, checkstyle, junit, github-actions formats
+  - stylish, codeclimate, markdown, gitlab formats
+- [x] **Performance Optimization**
+  - <50ms generation for 100 routes
+  - Benchmark suite for regression detection
 
 ---
 
-## Phase 5: Release 📦 PENDING
+## Phase 5: Release Preparation ✅ COMPLETE
 
-### Pre-Release Checklist
-- [ ] Docs site (Docusaurus or VitePress)
-- [ ] Example gallery (live demos)
-- [ ] CI/CD pipeline (GitHub Actions)
-  - Test on Node 16, 18, 20, 22
-  - Express 4 & 5 compatibility matrix
-  - TypeScript 4.5+ compatibility
-- [ ] npm publish preparation
-  - Package size optimization (<500KB)
-  - Peer dependency validation
-  - License audit
-- [ ] Community setup
-  - CONTRIBUTING.md
-  - Issue templates
-  - PR template
-  - Code of conduct
+**Status**: All release preparation complete
+
+### Deliverables
+- [x] CHANGELOG.md with release notes
+- [x] CONTRIBUTING.md development guide
+- [x] GitHub CI/CD workflows (test, lint, publish)
+- [x] GitHub issue/PR templates (bug, feature)
+- [x] CODE_OF_CONDUCT.md
+- [x] SECURITY.md vulnerability policy
+- [x] ROADMAP.md
+- [x] API documentation (docs/API.md)
+- [x] CLI documentation (docs/CLI.md)
+- [x] Security documentation (docs/SECURITY.md)
+- [x] Performance documentation (docs/PERFORMANCE.md)
+- [x] JSDoc tags documentation (docs/JSDOC_TAGS.md)
+- [x] Example app updates
+- [x] npm publish (v0.3.2)
+
+---
+
+## Phase 6: Documentation & Examples 🚀 CURRENT
+
+**Status**: In progress
+
+### Completed
+- [x] CLI documentation with all commands
+- [x] API reference documentation
+- [x] Security best practices guide
+- [x] Performance benchmarking guide
+- [x] JSDoc tags reference
+
+### In Progress
+- [ ] Documentation site with dedicated domain
+- [ ] Migration guides (swagger-jsdoc, tsoa)
+- [ ] Video tutorials for common workflows
+- [ ] Additional example applications
+- [ ] Interactive API explorer
 
 ---
 
 ## Testing Summary
 
-**Total Test Suites**: 22
-**Total Tests**: 302
+**Total Tests**: 474
 **Pass Rate**: 100%
 
-### Test Distribution
-- Core: 3 + 3 + 11 + 13 + 9 + 20 + 15 = 74 tests
-- Schema: 15 + 16 + 9 = 40 tests
-- Validators: 15 + 22 + 21 + 16 = 74 tests
-- Middleware: 8 + 4 = 12 tests
-- Parsers: 20 tests
-- Decorators: 8 tests
-- Integration: 8 tests
-- Inference: 27 tests
-- Security: 25 tests
-- Watch: 14 tests
+### Test Distribution by Component
+- CLI Tests: 154 tests (comprehensive, serve, stats, export, examples)
+- Core Tests: 74+ tests (RouteDiscovery, SpecGenerator, SnapshotStorage, etc.)
+- Validator Tests: 74 tests (Zod, Joi, Yup, Registry)
+- Parser Tests: 20 tests (JsDocParser)
+- Inference Tests: 27 tests (TypeInferenceEngine)
+- Security Tests: 25 tests (SecurityDetector)
+- Watch Tests: 14 tests (FileWatcher)
+- Middleware Tests: 12 tests (runtimeCapture, swaggerUI)
+- Decorator Tests: 8 tests
+- Integration Tests: 8 tests
+- Config Tests: 11 tests (ConfigLoader)
 
 ---
 
@@ -281,11 +186,10 @@ Current state: Skeleton commands in `cli.ts`
 - Full CRUD user management
 - Decorator-based metadata
 
-### jsdoc-example ✅ VALIDATED
+### jsdoc-example ✅
 - JavaScript with Joi validation
 - Product catalog API
-- **JSDoc parser working correctly** (6 routes parsed)
-- Swagger UI accessible at http://localhost:3001/api-docs
+- JSDoc parser working correctly
 
 ### runtime-example ✅
 - Zero-annotation blog API
@@ -294,87 +198,87 @@ Current state: Skeleton commands in `cli.ts`
 
 ---
 
-## Phase 3 Exit Criteria ✅ ALL MET
+## Key Architecture Components
 
-1. ✅ JSDoc parser implemented and tested (20 tests)
-2. ✅ Decorator system working (8 tests)
-3. ✅ AST tooling for comment extraction (comment-parser)
-4. ✅ Type inference via validator adapters (Zod/Joi/Yup)
-5. ✅ TypeScript Type Inference Engine (27 tests)
-6. ✅ Example merging (11 tests)
-7. ✅ All three strategies working (decorators, JSDoc, runtime)
-8. ✅ Example apps validated (jsdoc-example confirmed working)
-9. ✅ Integration tests passing (8 tests)
-10. ✅ Phase 1 & 2 components integrated into RouteDiscovery
-11. ✅ MiddlewareAnalyzer, PathParameterExtractor, RouteMetadataEnricher, SchemaExtractor integrated
-12. ✅ 100% test pass rate (302/302 tests)
+### Core
+- `RouteDiscovery` - Express app route extraction
+- `SpecGenerator` - OpenAPI specification generation
+- `MiddlewareAnalyzer` - Middleware analysis
+- `PathParameterExtractor` - Path parameter extraction
+- `RouteMetadataEnricher` - Route metadata enrichment
+- `SnapshotStorage` - Runtime snapshot persistence
+- `ExampleMerger` - Example merging logic
+
+### Schema
+- `JoiSchemaParser` - Joi schema parsing
+- `ControllerAnalyzer` - Controller function analysis
+- `SchemaExtractor` - Unified schema extraction
+
+### Validators
+- `ZodAdapter` - Zod to OpenAPI conversion
+- `JoiAdapter` - Joi to OpenAPI conversion
+- `YupAdapter` - Yup to OpenAPI conversion
+- `ValidatorRegistry` - Plugin architecture
+
+### Parsers
+- `JsDocParser` - JSDoc comment parsing
+- `JsDocTransformer` - JSDoc to OpenAPI transformation
+- `CommentExtractor` - Source file comment extraction
+
+### Inference
+- `TypeInferenceEngine` - TypeScript type parsing
+
+### Security
+- `SecurityDetector` - Security scheme detection
+
+### Watch
+- `FileWatcher` - File change monitoring
+
+### Config
+- `ConfigLoader` - Configuration file loading
+
+### Middleware
+- `runtimeCapture` - Runtime request/response capture
+- `createSwaggerUIMiddleware` - Swagger UI serving
 
 ---
 
-## Recommendations
+## Exports Summary
 
-### Immediate Next Steps (Phase 4 Start)
+The package exports the following from `express-swagger-auto`:
 
-1. **Update README Phase Status**
-   - Mark Phase 3 as complete
-   - Update jsdoc-example README (remove "Phase 3 pending" note)
+```typescript
+// Core
+export { RouteDiscovery, SpecGenerator, SnapshotStorage, ExampleMerger }
+export { MiddlewareAnalyzer, PathParameterExtractor, RouteMetadataEnricher }
 
-2. **Performance Baseline**
-   - Benchmark current performance (generate command with 100 routes)
-   - Establish baseline metrics before optimization
+// Schema
+export { JoiSchemaParser, ControllerAnalyzer, SchemaExtractor }
 
-3. **CLI Implementation Priority**
-   ```
-   High Priority:
-   - generate command (needed for workflows)
-   - validate command (quality gate)
+// Inference
+export { TypeInferenceEngine }
 
-   Medium Priority:
-   - serve command (nice-to-have)
-   - watch mode (developer experience)
+// Validators
+export { ZodAdapter, JoiAdapter, YupAdapter, ValidatorRegistry, validatorRegistry }
 
-   Low Priority:
-   - migrate command (can be manual initially)
-   ```
+// Config
+export { ConfigLoader }
 
-4. **Security Features**
-   - Start with JWT/Bearer detection (most common)
-   - Add configurable sensitive field patterns
-   - Implement security best practices validator
+// Middleware (from express-swagger-auto/middleware)
+export { runtimeCapture, createSwaggerUIMiddleware }
 
-5. **Documentation Update**
-   - Update CLAUDE.md with Phase 4 guardrails
-   - Create PERFORMANCE.md with benchmarks
-   - Create SECURITY.md with best practices
+// Parsers
+export { JsDocParser, JsDocTransformer, CommentExtractor }
 
-### Technology Decisions
+// Decorators (from express-swagger-auto/decorators)
+export { Route, Parameter, RequestBody, Response }
 
-**AST Tooling**: ✅ No @babel/parser needed
-- Current approach using `comment-parser` is sufficient
-- Simpler, faster, and works with both JS and TS
-- Avoid adding @babel/parser unless specific AST analysis is required
-
-**Type Inference**: ✅ Validator-based approach is working
-- Zod/Joi/Yup adapters provide schema extraction
-- No need for TypeScript compiler API integration
-- Keep it simple and performant
-
-**Performance Tools to Add**:
-- `autocannon` or `0x` for benchmarking
-- `clinic` for profiling
-- `why-is-node-running` for memory leak detection
+// Types
+export type { OpenAPISpec, OpenAPIInfo, GeneratorConfig, SwaggerAutoConfig, ... }
+```
 
 ---
 
 ## Conclusion
 
-**Phase 3 is production-ready**. All core parsing features are implemented, tested, and validated in working examples. The JSDoc parser is fully integrated with RouteDiscovery and successfully parsing 6 routes in the jsdoc-example.
-
-**Ready to proceed with Phase 4** focusing on:
-1. CLI completion (generate, validate, serve, migrate)
-2. Performance optimization (<50ms for 100 routes)
-3. Security detection and best practices
-4. Hot reload and watch mode
-5. Production hardening
-
-The foundation is solid. Time to polish for production use! 🚀
+**The project is production-ready** with all core features implemented, tested, and documented. Phase 6 continues with documentation improvements and additional examples.
