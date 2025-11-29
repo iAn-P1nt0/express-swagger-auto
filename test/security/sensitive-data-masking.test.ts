@@ -547,7 +547,7 @@ describe('Sensitive Data Masking - Security Tests', () => {
     });
 
     it('should not log plain API keys', () => {
-      const sensitiveApiKey = 'sk_live_testkey123456789';
+      const sensitiveApiKey = 'test_api_key_abcdef123456';
       mockRequest = createSecurityMockRequest({
         body: { apiKey: sensitiveApiKey },
       });
