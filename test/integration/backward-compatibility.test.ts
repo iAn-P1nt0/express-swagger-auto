@@ -569,9 +569,9 @@ describe('Contract Tests: Backward Compatibility', () => {
       expect(result.valid).toBe(false);
     });
 
-    it('should reject same version', () => {
+    it('should allow same version when no changes', () => {
+      // Same version with no changes is valid (idempotent operation)
       const result = validateSemanticVersioning('1.0.0', '1.0.0', false);
-      // Same version is technically valid (no change), depends on policy
       expect(result.valid).toBe(true);
     });
 

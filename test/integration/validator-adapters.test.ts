@@ -535,9 +535,10 @@ describe('Integration: Validator Adapters', () => {
         expect(result.maximum).toBe(100);
       });
 
-      it('should handle positive() constraint', () => {
+      it('should handle positive() constraint as number type', () => {
         const result = adapter.convert(yup.number().positive());
-        // positive() may not set minimum directly depending on Yup version
+        // positive() validates at runtime but doesn't set minimum in OpenAPI schema
+        // The important thing is it converts to a valid number type
         expect(result.type).toBe('number');
       });
     });
