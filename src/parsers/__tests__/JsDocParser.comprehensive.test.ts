@@ -1028,9 +1028,9 @@ function whitespace() {}
       });
       const stats = parser.getStats();
 
-      // The jsdoc-examples.js has 7 comments but one is non-OpenAPI
-      // so routesFound might be less than or equal to commentsProcessed
-      expect(stats.routesFound).toBeLessThanOrEqual(stats.commentsProcessed + 1);
+      // Routes found should be less than or equal to comments processed
+      // since non-OpenAPI comments are excluded by default
+      expect(stats.routesFound).toBeLessThanOrEqual(stats.commentsProcessed);
     });
   });
 });
