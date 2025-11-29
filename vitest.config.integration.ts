@@ -13,6 +13,7 @@ export default defineConfig({
       'src/integration.test.ts',
       '**/*.integration.test.ts',
       'test/cli/**/*.test.ts',
+      'test/integration/**/*.test.ts',
       'src/cli.serve.test.ts',
       'src/cli.comprehensive.test.ts',
     ],
