@@ -1,0 +1,150 @@
+name: Mutation Tests
+
+on:
+  schedule:
+    # Run weekly on Sunday at 2:00 AM UTC
+    - cron: '0 2 * * 0'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**/*.ts'
+      - 'stryker.config.mjs'
+      - '.github/workflows/mutation-tests.yml'
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Modules to test (e.g., core, parsers, validators, or all)'
+        required: false
+        default: 'all'
+
+# Limit permissions for security
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  mutation-test:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Cache Stryker incremental results
+        uses: actions/cache@v3
+        with:
+          path: .stryker-tmp
+          key: stryker-incremental-${{ github.sha }}
+          restore-keys: |
+            stryker-incremental-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run unit tests first
+        run: pnpm test
+
+      - name: Create reports directory
+        run: mkdir -p reports/mutation
+
+      - name: Run Mutation Tests (All)
+        if: github.event.inputs.modules == 'all' || github.event.inputs.modules == ''
+        run: pnpm test:mutation
+        continue-on-error: true
+
+      - name: Run Mutation Tests (Core)
+        if: github.event.inputs.modules == 'core'
+        run: pnpm test:mutation:core
+        continue-on-error: true
+
+      - name: Generate Mutation Report
+        run: |
+          if [ -f reports/mutation/mutation-report.json ]; then
+            pnpm mutation-report --format markdown --output reports/mutation/SUMMARY.md
+            cat reports/mutation/SUMMARY.md
+          else
+            echo "No mutation report found"
+          fi
+        continue-on-error: true
+
+      - name: Record mutation trends
+        run: |
+          if [ -f reports/mutation/mutation-report.json ]; then
+            pnpm mutation-trends record
+          fi
+        continue-on-error: true
+
+      - name: Upload Mutation Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 30
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-html-report
+          path: reports/mutation/index.html
+          retention-days: 30
+
+      - name: Check mutation score threshold
+        run: |
+          if [ -f reports/mutation/mutation-report.json ]; then
+            SCORE=$(node -e "const r = require('./reports/mutation/mutation-report.json'); const files = Object.values(r.files); let killed = 0, total = 0; files.forEach(f => f.mutants.forEach(m => { total++; if (m.status === 'Killed' || m.status === 'Timeout') killed++; })); console.log(Math.round(killed/total*100));")
+            echo "Mutation Score: $SCORE%"
+            if [ "$SCORE" -lt 65 ]; then
+              echo "::warning::Mutation score ($SCORE%) is below threshold (65%)"
+            fi
+          fi
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summaryPath = 'reports/mutation/SUMMARY.md';
+            
+            if (!fs.existsSync(summaryPath)) {
+              console.log('No summary file found');
+              return;
+            }
+            
+            const summary = fs.readFileSync(summaryPath, 'utf-8');
+            const shortSummary = summary.split('\n').slice(0, 30).join('\n');
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🧬 Mutation Testing Results\n\n${shortSummary}\n\n*Full report available in workflow artifacts*`
+            });
