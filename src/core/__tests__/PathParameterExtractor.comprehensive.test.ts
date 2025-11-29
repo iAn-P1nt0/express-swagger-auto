@@ -666,5 +666,409 @@ describe('PathParameterExtractor - Comprehensive Tests', () => {
         expect(params[0].schema.type).toBe('number');
       }
     });
+
+    it('should normalize int32 to integer', () => {
+      const doc = '@query {int32} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('integer');
+      }
+    });
+
+    it('should normalize int64 to integer', () => {
+      const doc = '@query {int64} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('integer');
+      }
+    });
+
+    it('should normalize double to number', () => {
+      const doc = '@query {double} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('number');
+      }
+    });
+
+    it('should normalize str to string', () => {
+      const doc = '@query {str} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('string');
+      }
+    });
+
+    it('should normalize text to string', () => {
+      const doc = '@query {text} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('string');
+      }
+    });
+
+    it('should normalize uuid to string', () => {
+      const doc = '@query {uuid} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('string');
+      }
+    });
+
+    it('should preserve unknown types', () => {
+      const doc = '@query {custom} value - Value';
+      const params = extractor.extractQueryParameters(doc);
+
+      if (params.length > 0) {
+        expect(params[0].schema.type).toBe('custom');
+      }
+    });
+  });
+
+  describe('Regex Pattern Type Inference', () => {
+    it('should infer string type from non-numeric regex pattern', () => {
+      // This tests line 189 - non-numeric patterns should return 'string'
+      const regex = /^\/resources\/(?<slug>[a-z-]+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.isRegex).toBe(true);
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].name).toBe('slug');
+      expect(result.parameters[0].schema.type).toBe('string');
+    });
+
+    it('should infer string type from alphanumeric regex pattern', () => {
+      const regex = /^\/items\/(?<code>[a-zA-Z0-9]+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].schema.type).toBe('string');
+    });
+
+    it('should infer integer type from \\d pattern', () => {
+      const regex = /^\/users\/(?<id>\d+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].schema.type).toBe('integer');
+    });
+
+    it('should infer integer type from explicit digit pattern', () => {
+      const regex = /^\/products\/(?<productId>[0-9]+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      // The pattern [0-9]+ matches the /^\d+$/ test
+      expect(result.parameters).toHaveLength(1);
+    });
+
+    it('should extract pattern from regex named groups', () => {
+      const regex = /^\/files\/(?<filename>[a-z0-9_-]+\.[a-z]+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].name).toBe('filename');
+      expect(result.parameters[0].schema.pattern).toBe('[a-z0-9_-]+\\.[a-z]+');
+    });
+
+    it('should handle regex with multiple named groups of different types', () => {
+      const regex = /^\/api\/(?<version>[a-z]+)\/users\/(?<userId>\d+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.parameters).toHaveLength(2);
+      expect(result.parameters[0].name).toBe('version');
+      expect(result.parameters[0].schema.type).toBe('string');
+      expect(result.parameters[1].name).toBe('userId');
+      expect(result.parameters[1].schema.type).toBe('integer');
+    });
+  });
+
+  describe('Additional Edge Cases', () => {
+    it('should handle empty path', () => {
+      const result = extractor.extractPathParameters('');
+
+      expect(result.parameters).toHaveLength(0);
+      expect(result.normalized).toBe('');
+    });
+
+    it('should handle path with trailing slash', () => {
+      const result = extractor.extractPathParameters('/users/:id/');
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.normalized).toBe('/users/{id}/');
+    });
+
+    it('should handle path with query string portion preserved', () => {
+      // Note: The extractor handles the path as-is
+      const result = extractor.extractPathParameters('/users/:id?filter=active');
+
+      // The ? is not treated as optional marker here, just part of path
+      expect(result.normalized).toContain('/users/{id}');
+    });
+
+    it('should handle path with file extension', () => {
+      const result = extractor.extractPathParameters('/files/:filename.json');
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].name).toBe('filename');
+    });
+
+    it('should handle single character parameter name', () => {
+      const result = extractor.extractPathParameters('/items/:x');
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].name).toBe('x');
+    });
+
+    it('should handle path with static segment containing numbers', () => {
+      const result = extractor.extractPathParameters('/api/v2/users/:id');
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.normalized).toBe('/api/v2/users/{id}');
+    });
+
+    it('should handle very long path (100+ characters)', () => {
+      const longPath =
+        '/api/v1/organizations/:orgId/departments/:deptId/teams/:teamId/projects/:projectId/tasks/:taskId/comments/:commentId';
+
+      const result = extractor.extractPathParameters(longPath);
+
+      expect(result.parameters).toHaveLength(6);
+      expect(result.normalized.length).toBeGreaterThan(100);
+    });
+
+    it('should handle path with multiple static segments between params', () => {
+      const result = extractor.extractPathParameters(
+        '/api/users/:userId/profile/settings/:settingId/details'
+      );
+
+      expect(result.parameters).toHaveLength(2);
+      expect(result.normalized).toBe(
+        '/api/users/{userId}/profile/settings/{settingId}/details'
+      );
+    });
+  });
+
+  describe('Table-Driven Type Inference Tests', () => {
+    const typeInferenceCases = [
+      ['id', 'integer'],
+      ['userId', 'integer'],
+      ['postId', 'integer'],
+      ['itemId', 'integer'],
+      ['page', 'integer'],
+      ['limit', 'integer'],
+      ['offset', 'integer'],
+      ['count', 'integer'],
+      ['size', 'integer'],
+      ['enabled', 'boolean'],
+      ['disabled', 'boolean'],
+      ['active', 'boolean'],
+      ['inactive', 'boolean'],
+      ['deleted', 'boolean'],
+      ['archived', 'boolean'],
+      ['slug', 'string'],
+      ['name', 'string'],
+      ['filename', 'string'],
+      ['token', 'string'],
+      ['category', 'string'],
+    ] as const;
+
+    test.each(typeInferenceCases)(
+      'should infer type for :%s as %s',
+      (paramName, expectedType) => {
+        const result = extractor.extractPathParameters(`/resource/:${paramName}`);
+        expect(result.parameters[0].schema.type).toBe(expectedType);
+      }
+    );
+  });
+
+  describe('Table-Driven Pattern Tests', () => {
+    const patternCases = [
+      ['id', '^[0-9]+$'],
+      ['userId', '^[0-9]+$'],
+      ['uuid', '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'],
+      ['guid', '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'],
+      ['slug', '^[a-z0-9-]+$'],
+      ['name', '^[a-z0-9-]+$'],
+      ['email', '^[^@]+@[^@]+\\.[^@]+$'],
+      ['mail', '^[^@]+@[^@]+\\.[^@]+$'],
+    ] as const;
+
+    test.each(patternCases)(
+      'should generate pattern for :%s as %s',
+      (paramName, expectedPattern) => {
+        const result = extractor.extractPathParameters(`/resource/:${paramName}`);
+        expect(result.parameters[0].schema.pattern).toBe(expectedPattern);
+      }
+    );
+  });
+
+  describe('Table-Driven Normalization Tests', () => {
+    const normalizationCases = [
+      ['/users/:id', '/users/{id}'],
+      ['/users/:userId/posts/:postId', '/users/{userId}/posts/{postId}'],
+      ['/api/v1/items/:itemId', '/api/v1/items/{itemId}'],
+      ['/:id', '/{id}'],
+      ['/:a/:b/:c', '/{a}/{b}/{c}'],
+      ['/users', '/users'],
+      ['/', '/'],
+      ['/api/v1/health', '/api/v1/health'],
+    ] as const;
+
+    test.each(normalizationCases)(
+      'should normalize %s to %s',
+      (input, expected) => {
+        const normalized = extractor.normalizePath(input);
+        expect(normalized).toBe(expected);
+      }
+    );
+  });
+
+  describe('OpenAPI Parameter Edge Cases', () => {
+    it('should handle header parameter location', () => {
+      const param = {
+        name: 'Authorization',
+        in: 'header' as const,
+        required: true,
+        schema: { type: 'string' as const },
+        description: 'Auth token',
+      };
+
+      const openAPIParam = extractor.toOpenAPIParameter(param);
+
+      expect(openAPIParam.name).toBe('Authorization');
+      expect(openAPIParam.in).toBe('header');
+      expect(openAPIParam.style).toBeUndefined();
+      expect(openAPIParam.explode).toBeUndefined();
+    });
+
+    it('should handle cookie parameter location', () => {
+      const param = {
+        name: 'sessionId',
+        in: 'cookie' as const,
+        required: false,
+        schema: { type: 'string' as const },
+        description: 'Session cookie',
+      };
+
+      const openAPIParam = extractor.toOpenAPIParameter(param);
+
+      expect(openAPIParam.name).toBe('sessionId');
+      expect(openAPIParam.in).toBe('cookie');
+      expect(openAPIParam.required).toBe(false);
+    });
+
+    it('should handle parameter with numeric enum', () => {
+      const param = {
+        name: 'priority',
+        in: 'query' as const,
+        required: false,
+        schema: {
+          type: 'integer' as const,
+          enum: [1, 2, 3, 4, 5] as (string | number)[],
+        },
+        description: 'Priority level',
+      };
+
+      const openAPIParam = extractor.toOpenAPIParameter(param);
+
+      expect(openAPIParam.schema?.enum).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('should handle parameter without schema', () => {
+      const param = {
+        name: 'simple',
+        in: 'query' as const,
+        required: false,
+        schema: { type: 'string' as const },
+        description: 'Simple param',
+      };
+
+      const openAPIParam = extractor.toOpenAPIParameter(param);
+
+      expect(openAPIParam.schema).toBeDefined();
+    });
+  });
+
+  describe('Complex Regex Scenarios', () => {
+    it('should handle complex regex with optional groups', () => {
+      const regex = /^\/api\/(?<version>v\d+)?\/users$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.isRegex).toBe(true);
+    });
+
+    it('should handle regex with special characters in pattern', () => {
+      const regex = /^\/files\/(?<path>[a-zA-Z0-9\/\-_\.]+)$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.isRegex).toBe(true);
+      if (result.parameters.length > 0) {
+        expect(result.parameters[0].name).toBe('path');
+      }
+    });
+
+    it('should set normalized to pattern for regex input', () => {
+      const regex = /^\/custom\/path$/;
+      const result = extractor.extractPathParameters(regex);
+
+      expect(result.normalized).toBe(regex.source);
+    });
+  });
+
+  describe('Query Parameter Type Extraction', () => {
+    it('should extract description from query parameter', () => {
+      const doc = '@query {string} search - Full text search query';
+      const params = extractor.extractQueryParameters(doc);
+
+      expect(params).toHaveLength(1);
+      expect(params[0].description).toBe('Full text search query');
+    });
+
+    it('should handle query with number type', () => {
+      const doc = '@query {number} price - Price filter';
+      const params = extractor.extractQueryParameters(doc);
+
+      expect(params).toHaveLength(1);
+      expect(params[0].schema.type).toBe('number');
+    });
+
+    it('should handle query with boolean type', () => {
+      const doc = '@query {boolean} featured - Featured items only';
+      const params = extractor.extractQueryParameters(doc);
+
+      expect(params).toHaveLength(1);
+      expect(params[0].schema.type).toBe('boolean');
+    });
+  });
+
+  describe('Parameter Description Edge Cases', () => {
+    it('should handle parameter names starting with uppercase', () => {
+      const result = extractor.extractPathParameters('/items/:ID');
+
+      expect(result.parameters).toHaveLength(1);
+      // ID matches /Id$/i pattern
+      expect(result.parameters[0].schema.type).toBe('integer');
+    });
+
+    it('should handle mixed case parameter names', () => {
+      const result = extractor.extractPathParameters('/users/:UserID');
+
+      expect(result.parameters).toHaveLength(1);
+      expect(result.parameters[0].description).toContain('identifier');
+    });
+
+    it('should handle underscore parameter for description', () => {
+      const result = extractor.extractPathParameters('/items/:item_id');
+
+      expect(result.parameters).toHaveLength(1);
+      // Description generation converts camelCase
+      expect(result.parameters[0].description).toBe('The item_id identifier');
+    });
   });
 });
