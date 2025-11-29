@@ -826,10 +826,14 @@ describe('SpecGenerator - Comprehensive Tests', () => {
     });
 
     it('should handle large number of routes (100+ routes)', () => {
+      const ROUTE_COUNT = 150;
+      const MAX_EXECUTION_TIME_MS = 5000;
+      const HTTP_METHODS = ['GET', 'POST'] as const;
+      
       const routes: RouteMetadata[] = [];
-      for (let i = 0; i < 150; i++) {
+      for (let i = 0; i < ROUTE_COUNT; i++) {
         routes.push({
-          method: i % 2 === 0 ? 'GET' : 'POST',
+          method: HTTP_METHODS[i % HTTP_METHODS.length],
           path: `/api/resource${i}`,
           handler: () => {},
         });
@@ -839,25 +843,26 @@ describe('SpecGenerator - Comprehensive Tests', () => {
       const spec = generator.generate(routes);
       const endTime = Date.now();
 
-      expect(Object.keys(spec.paths)).toHaveLength(150);
-      // Verify execution time is reasonable (less than 5 seconds)
-      expect(endTime - startTime).toBeLessThan(5000);
+      expect(Object.keys(spec.paths)).toHaveLength(ROUTE_COUNT);
+      // Verify execution time is reasonable (less than 5 seconds per acceptance criteria)
+      expect(endTime - startTime).toBeLessThan(MAX_EXECUTION_TIME_MS);
     });
 
     it('should handle deeply nested paths', () => {
+      const deeplyNestedPath = '/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10';
+      const expectedOperationId = 'get_level1_level2_level3_level4_level5_level6_level7_level8_level9_level10';
+      
       const routes: RouteMetadata[] = [
         {
           method: 'GET',
-          path: '/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10',
+          path: deeplyNestedPath,
           handler: () => {},
         },
       ];
       const spec = generator.generate(routes);
 
-      expect(spec.paths['/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10']).toBeDefined();
-      expect(spec.paths['/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10'].get.operationId).toBe(
-        'get_level1_level2_level3_level4_level5_level6_level7_level8_level9_level10'
-      );
+      expect(spec.paths[deeplyNestedPath]).toBeDefined();
+      expect(spec.paths[deeplyNestedPath].get.operationId).toBe(expectedOperationId);
     });
 
     it('should handle paths with trailing slashes', () => {
@@ -1949,8 +1954,15 @@ describe('SpecGenerator - Comprehensive Tests', () => {
       ];
       const spec = generator.generate(routes);
 
+      // Navigate through the deeply nested schema step by step for readability
       const schema = spec.paths['/organization'].get.responses['200'].content?.['application/json']?.schema;
-      expect(schema?.properties?.level1?.properties?.level2?.properties?.level3?.properties?.level4?.properties?.value?.type).toBe('string');
+      const level1 = schema?.properties?.level1;
+      const level2 = level1?.properties?.level2;
+      const level3 = level2?.properties?.level3;
+      const level4 = level3?.properties?.level4;
+      const valueField = level4?.properties?.value;
+      
+      expect(valueField?.type).toBe('string');
     });
 
     it('should handle schema with format specifications', () => {
