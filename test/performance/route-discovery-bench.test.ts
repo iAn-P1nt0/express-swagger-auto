@@ -15,6 +15,12 @@ import {
   BenchmarkResult,
 } from './utils';
 
+// Route count configuration
+// Each "resource" creates 3 routes (GET /, POST /, GET /:id)
+const RESOURCES_FOR_100_ROUTES = Math.ceil(100 / 3); // ~102 routes
+const RESOURCES_FOR_500_ROUTES = Math.ceil(500 / 3); // ~501 routes
+const RESOURCES_FOR_1000_ROUTES = Math.ceil(1000 / 3); // ~1002 routes
+
 describe('Route Discovery Performance', () => {
   let discovery: RouteDiscovery;
   const results: BenchmarkResult[] = [];
@@ -25,7 +31,7 @@ describe('Route Discovery Performance', () => {
 
   describe('Route Count Scaling', () => {
     it('should discover 100 routes in <50ms', async () => {
-      const app = createTestApp(34); // 34 resources * 3 routes each = 102 routes
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
 
       const result = await measurePerformance(
         () => discovery.discover(app),
@@ -44,7 +50,7 @@ describe('Route Discovery Performance', () => {
     });
 
     it('should discover 500 routes in <200ms', async () => {
-      const app = createTestApp(167); // 167 resources * 3 routes each = 501 routes
+      const app = createTestApp(RESOURCES_FOR_500_ROUTES);
 
       const result = await measurePerformance(
         () => discovery.discover(app),
@@ -63,7 +69,7 @@ describe('Route Discovery Performance', () => {
     });
 
     it('should discover 1000 routes in <500ms', async () => {
-      const app = createTestApp(334); // 334 resources * 3 routes each = 1002 routes
+      const app = createTestApp(RESOURCES_FOR_1000_ROUTES);
 
       const result = await measurePerformance(
         () => discovery.discover(app),
@@ -180,7 +186,7 @@ describe('Route Discovery Performance', () => {
 
   describe('Memory Usage', () => {
     it('should have reasonable memory usage for 100 routes', async () => {
-      const app = createTestApp(34);
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
 
       const result = await measurePerformance(
         () => discovery.discover(app),
@@ -199,7 +205,7 @@ describe('Route Discovery Performance', () => {
     });
 
     it('should have reasonable memory usage for 500 routes', async () => {
-      const app = createTestApp(167);
+      const app = createTestApp(RESOURCES_FOR_500_ROUTES);
 
       const result = await measurePerformance(
         () => discovery.discover(app),

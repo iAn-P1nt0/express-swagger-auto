@@ -15,6 +15,13 @@ import {
   BenchmarkResult,
 } from './utils';
 
+// Route count configuration
+// Each "resource" creates 3 routes (GET /, POST /, GET /:id)
+const RESOURCES_FOR_100_ROUTES = Math.ceil(100 / 3); // ~102 routes
+const RESOURCES_FOR_500_ROUTES = Math.ceil(500 / 3); // ~501 routes
+const RESOURCES_FOR_1000_ROUTES = Math.ceil(1000 / 3); // ~1002 routes
+const RESOURCES_FOR_50_ROUTES = Math.ceil(50 / 3); // ~51 routes
+
 describe('Spec Generation Performance', () => {
   let discovery: RouteDiscovery;
   const results: BenchmarkResult[] = [];
@@ -25,7 +32,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Route Count Scaling', () => {
     it('should generate spec for 100 routes in <100ms', async () => {
-      const app = createTestApp(34);
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -49,7 +56,7 @@ describe('Spec Generation Performance', () => {
     });
 
     it('should generate spec for 500 routes in <400ms', async () => {
-      const app = createTestApp(167);
+      const app = createTestApp(RESOURCES_FOR_500_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -73,7 +80,7 @@ describe('Spec Generation Performance', () => {
     });
 
     it('should generate spec for 1000 routes in <1000ms', async () => {
-      const app = createTestApp(334);
+      const app = createTestApp(RESOURCES_FOR_1000_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -147,7 +154,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Large Component Libraries', () => {
     it('should handle 100+ schemas efficiently', async () => {
-      const app = createTestApp(100);
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
       const routes = discovery.discover(app);
 
       // Create generator with many component schemas
@@ -185,7 +192,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Memory Efficiency', () => {
     it('should have efficient memory usage for 100 routes', async () => {
-      const app = createTestApp(34);
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -208,7 +215,7 @@ describe('Spec Generation Performance', () => {
     });
 
     it('should have efficient memory usage for 500 routes', async () => {
-      const app = createTestApp(167);
+      const app = createTestApp(RESOURCES_FOR_500_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -232,7 +239,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Spec Size', () => {
     it('should generate reasonably sized specs', async () => {
-      const app = createTestApp(100);
+      const app = createTestApp(RESOURCES_FOR_100_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -251,7 +258,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Incremental Generation', () => {
     it('should generate quickly for small additions', async () => {
-      const app = createTestApp(50);
+      const app = createTestApp(RESOURCES_FOR_50_ROUTES);
       const routes = discovery.discover(app);
 
       const generator = new SpecGenerator({
@@ -289,7 +296,7 @@ describe('Spec Generation Performance', () => {
 
   describe('Configuration Variations', () => {
     it('should perform similarly with servers config', async () => {
-      const app = createTestApp(50);
+      const app = createTestApp(RESOURCES_FOR_50_ROUTES);
       const routes = discovery.discover(app);
 
       const generatorWithServers = new SpecGenerator({
@@ -328,7 +335,7 @@ describe('Spec Generation Performance', () => {
     });
 
     it('should perform well with security schemes', async () => {
-      const app = createTestApp(50);
+      const app = createTestApp(RESOURCES_FOR_50_ROUTES);
       const routes = discovery.discover(app);
 
       const generatorWithSecurity = new SpecGenerator({

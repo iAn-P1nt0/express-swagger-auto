@@ -15,6 +15,10 @@ on:
         required: false
         default: 'false'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   performance:
     runs-on: ubuntu-latest
