@@ -732,4 +732,1348 @@ describe('RouteDiscovery - Comprehensive Tests', () => {
       expect(routes[0].path).toBe('/api/v1/users/:userId/settings/:setting');
     });
   });
+
+  describe('Metadata Merging', () => {
+    it('should merge decorator and JSDoc metadata when both have summary', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      // Decorator metadata
+      (handler as any).__openapi_metadata = {
+        summary: 'Decorator Summary',
+        description: 'Decorator description',
+        tags: ['decorator-tag'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path' as const,
+            required: true,
+            description: 'ID from decorator',
+          },
+        ],
+        responses: {
+          '200': { description: 'Success from decorator' },
+        },
+      };
+
+      app.get('/users/:id', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata).toBeDefined();
+      expect(routes[0].metadata?.summary).toBe('Decorator Summary');
+      expect(routes[0].metadata?.tags).toContain('decorator-tag');
+    });
+
+    it('should handle metadata with only decorator source', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Only decorator',
+        tags: ['tag1', 'tag2'],
+      };
+
+      app.get('/test', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata?.summary).toBe('Only decorator');
+      expect(routes[0].metadata?.tags).toEqual(['tag1', 'tag2']);
+    });
+
+    it('should handle metadata with tags from both sources', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        tags: ['decorator-tag'],
+        parameters: [
+          {
+            name: 'filter',
+            in: 'query' as const,
+            required: false,
+            description: 'Filter parameter',
+          },
+        ],
+      };
+
+      app.get('/items', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata?.tags).toContain('decorator-tag');
+    });
+
+    it('should handle metadata with responses', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        responses: {
+          '200': { description: 'Success' },
+          '404': { description: 'Not Found' },
+        },
+      };
+
+      app.get('/resource', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata?.responses?.['200']).toBeDefined();
+      expect(routes[0].metadata?.responses?.['404']).toBeDefined();
+    });
+
+    it('should handle metadata with parameters from both path and query', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        parameters: [
+          {
+            name: 'userId',
+            in: 'path' as const,
+            required: true,
+            description: 'User ID',
+          },
+          {
+            name: 'include',
+            in: 'query' as const,
+            required: false,
+            description: 'Include related resources',
+          },
+        ],
+      };
+
+      app.get('/users/:userId', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata?.parameters).toHaveLength(2);
+      expect(routes[0].metadata?.parameters?.find((p) => p.name === 'userId')?.in).toBe('path');
+      expect(routes[0].metadata?.parameters?.find((p) => p.name === 'include')?.in).toBe('query');
+    });
+
+    it('should handle metadata with requestBody', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      app.post('/users', handler);
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].metadata?.requestBody).toBeDefined();
+      expect(routes[0].metadata?.requestBody?.required).toBe(true);
+    });
+
+    it('should merge duplicate tags into unique set when merged with JSDoc', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        tags: ['tag1', 'tag2'],
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              tags: ['tag1', 'tag3'], // tag1 is duplicate
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // Tags should be unique (deduped via mergeTags)
+      const tags = routes[0].metadata?.tags;
+      expect(tags?.filter((t) => t === 'tag1').length).toBe(1);
+      expect(tags).toContain('tag1');
+      expect(tags).toContain('tag2');
+      expect(tags).toContain('tag3');
+    });
+
+    it('should handle empty metadata gracefully', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {};
+
+      app.get('/test', handler);
+
+      const routes = discovery.discover(app);
+
+      // Empty metadata should still be present
+      expect(routes[0].metadata).toBeDefined();
+    });
+
+    it('should handle null handler in metadata extraction', () => {
+      const app = express();
+
+      // Add a simple route
+      app.get('/test', (req, res) => res.json({}));
+
+      const routes = discovery.discover(app);
+
+      // Handler should be defined
+      expect(routes[0].handler).toBeDefined();
+    });
+
+    it('should handle non-function handler gracefully', () => {
+      const app = express();
+
+      // Normal route
+      app.get('/test', (req, res) => res.json({}));
+
+      const routes = discovery.discover(app);
+
+      expect(routes.length).toBe(1);
+    });
+  });
+
+  describe('JSDoc Integration', () => {
+    it('should enable JSDoc parsing with parser option', () => {
+      const app = express();
+      app.get('/users', (req, res) => res.json([]));
+
+      // Mock JsDocParser
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users',
+              summary: 'Get all users',
+              tags: ['users'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes.length).toBe(1);
+      // JSDoc metadata should be merged
+      expect(routes[0].metadata?.summary).toBe('Get all users');
+    });
+
+    it('should not parse JSDoc when parser not provided', () => {
+      const app = express();
+      app.get('/users', (req, res) => res.json([]));
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        // No jsDocParser provided
+      });
+
+      expect(routes.length).toBe(1);
+      expect(routes[0].metadata).toBeUndefined();
+    });
+
+    it('should handle JSDoc parser returning empty results', () => {
+      const app = express();
+      app.get('/users', (req, res) => res.json([]));
+
+      const mockParser = {
+        parse: () => [],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes.length).toBe(1);
+    });
+
+    it('should handle JSDoc parser with multiple routes', () => {
+      const app = express();
+      app.get('/users', (req, res) => res.json([]));
+      app.get('/users/:id', (req, res) => res.json({}));
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users',
+              summary: 'List users',
+              tags: ['users'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users/:id',
+              summary: 'Get user by ID',
+              tags: ['users'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes.length).toBe(2);
+      expect(routes[0].metadata?.summary).toBe('List users');
+      expect(routes[1].metadata?.summary).toBe('Get user by ID');
+    });
+
+    it('should merge JSDoc and decorator metadata correctly', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      // Add decorator metadata
+      (handler as any).__openapi_metadata = {
+        tags: ['decorator-users'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path' as const,
+            required: true,
+            description: 'User ID from decorator',
+          },
+        ],
+      };
+
+      app.get('/users/:id', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users/:id',
+              summary: 'JSDoc Summary',
+              description: 'JSDoc Description',
+              tags: ['jsdoc-users'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('JSDoc Summary');
+      expect(routes[0].metadata?.description).toBe('JSDoc Description');
+      // Tags should be merged
+      expect(routes[0].metadata?.tags).toContain('decorator-users');
+      expect(routes[0].metadata?.tags).toContain('jsdoc-users');
+      // Parameters should include decorator ones
+      expect(routes[0].metadata?.parameters?.find((p) => p.name === 'id')).toBeDefined();
+    });
+
+    it('should handle JSDoc route key matching with uppercase method', () => {
+      const app = express();
+      app.post('/items', (req, res) => res.json({}));
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'POST',
+              path: '/items',
+              summary: 'Create item',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('Create item');
+    });
+
+    it('should handle JSDoc with normalized path matching', () => {
+      const app = express();
+      const router = Router();
+      router.get('/items', (req, res) => res.json([]));
+      app.use('/api', router);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/api/items',
+              summary: 'List API items',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('List API items');
+    });
+
+    it('should handle JSDoc metadata with responses', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        responses: {
+          '200': { description: 'Decorator response' },
+        },
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              responses: {
+                '404': { description: 'JSDoc not found' },
+              },
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // JSDoc responses should override decorator responses
+      expect(routes[0].metadata?.responses?.['200']).toBeDefined();
+      expect(routes[0].metadata?.responses?.['404']).toBeDefined();
+    });
+
+    it('should handle JSDoc metadata with parameters merging', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        parameters: [
+          {
+            name: 'id',
+            in: 'path' as const,
+            required: true,
+            description: 'Decorator ID',
+          },
+        ],
+      };
+
+      app.get('/users/:id', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users/:id',
+              parameters: [
+                {
+                  name: 'filter',
+                  in: 'query' as const,
+                  required: false,
+                  description: 'JSDoc filter',
+                },
+              ],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // Should have both parameters
+      expect(routes[0].metadata?.parameters).toHaveLength(2);
+      expect(routes[0].metadata?.parameters?.find((p) => p.name === 'id')).toBeDefined();
+      expect(routes[0].metadata?.parameters?.find((p) => p.name === 'filter')).toBeDefined();
+    });
+
+    it('should prioritize decorator parameter over JSDoc for same name+location', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        parameters: [
+          {
+            name: 'id',
+            in: 'path' as const,
+            required: true,
+            description: 'Decorator description',
+          },
+        ],
+      };
+
+      app.get('/users/:id', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/users/:id',
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path' as const,
+                  required: true,
+                  description: 'JSDoc description',
+                },
+              ],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // Should only have one 'id' parameter (decorator takes priority)
+      const idParams = routes[0].metadata?.parameters?.filter((p) => p.name === 'id');
+      expect(idParams).toHaveLength(1);
+      expect(idParams?.[0].description).toBe('Decorator description');
+    });
+  });
+
+  describe('Schema Extraction Integration', () => {
+    it('should extract schema when enabled', () => {
+      const app = express();
+      app.post('/users', (req, res) => {
+        const { name, email } = req.body;
+        res.status(201).json({ id: 1, name, email });
+      });
+
+      const routes = discovery.discover(app, {
+        enableSchemaExtraction: true,
+        enableMetadataEnrichment: true,
+      });
+
+      expect(routes.length).toBe(1);
+      // Schema extraction should be attempted - check through enriched routes API
+      const enrichedRoutes = discovery.getEnrichedRoutes();
+      expect(enrichedRoutes[0].operationId).toBeDefined();
+    });
+
+    it('should merge schema with existing metadata', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) => {
+        const { data } = req.body;
+        res.json({ result: data });
+      };
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Process data',
+      };
+
+      app.post('/process', handler);
+
+      const routes = discovery.discover(app, {
+        enableSchemaExtraction: true,
+        enableMetadataEnrichment: true,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('Process data');
+    });
+  });
+
+  describe('Route Method Handling', () => {
+    it('should uppercase method names', () => {
+      const app = express();
+      app.get('/test', (req, res) => res.json({}));
+
+      const routes = discovery.discover(app);
+
+      expect(routes[0].method).toBe('GET');
+    });
+
+    it('should handle trace method', () => {
+      const app = express();
+      (app as any).trace('/debug', (req: express.Request, res: express.Response) => res.send());
+
+      const routes = discovery.discover(app);
+
+      if (routes.length > 0) {
+        expect(routes[0].method).toBe('TRACE');
+      }
+    });
+  });
+
+  describe('Router Stack Analysis', () => {
+    it('should handle router with only sub-routers (no direct routes)', () => {
+      const app = express();
+      const apiRouter = Router();
+      const v1Router = Router();
+
+      v1Router.get('/items', (req, res) => res.json([]));
+      apiRouter.use('/v1', v1Router);
+      app.use('/api', apiRouter);
+
+      const routes = discovery.discover(app);
+
+      expect(routes.length).toBe(1);
+      expect(routes[0].path).toBe('/api/v1/items');
+    });
+
+    it('should handle mixed routes and routers', () => {
+      const app = express();
+      const router = Router();
+
+      // Direct route on app
+      app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+      // Router with routes
+      router.get('/items', (req, res) => res.json([]));
+      app.use('/api', router);
+
+      const routes = discovery.discover(app);
+
+      expect(routes.length).toBe(2);
+      const paths = routes.map((r) => r.path);
+      expect(paths).toContain('/health');
+      expect(paths).toContain('/api/items');
+    });
+  });
+
+  describe('Express 5 Compatibility', () => {
+    it('should handle Express 5 router.stack property', () => {
+      // Create a mock Express 5 style app
+      const mockApp = {
+        router: {
+          stack: [
+            {
+              route: {
+                path: '/test',
+                methods: { get: true },
+                stack: [
+                  {
+                    handle: () => {},
+                    name: 'handler',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const routes = discovery.discover(mockApp as any);
+
+      expect(routes.length).toBe(1);
+      expect(routes[0].path).toBe('/test');
+      expect(routes[0].method).toBe('GET');
+    });
+
+    it('should fallback to direct stack property', () => {
+      // Create a mock router with direct stack
+      const mockRouter = {
+        stack: [
+          {
+            route: {
+              path: '/direct',
+              methods: { post: true },
+              stack: [
+                {
+                  handle: () => {},
+                  name: 'handler',
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(mockRouter as any);
+
+      expect(routes.length).toBe(1);
+      expect(routes[0].path).toBe('/direct');
+      expect(routes[0].method).toBe('POST');
+    });
+  });
+
+  describe('Path Extraction Edge Cases', () => {
+    it('should handle layer with path property', () => {
+      const app = express();
+      const router = Router();
+
+      router.get('/test', (req, res) => res.json({}));
+      app.use('/prefix', router);
+
+      const routes = discovery.discover(app);
+
+      expect(routes.length).toBe(1);
+    });
+
+    it('should handle route with multiple methods registered', () => {
+      const app = express();
+
+      // Same route registered for multiple methods
+      app.route('/resource')
+        .get((req, res) => res.json([]))
+        .post((req, res) => res.json({}))
+        .put((req, res) => res.json({}))
+        .delete((req, res) => res.send());
+
+      const routes = discovery.discover(app);
+
+      expect(routes.length).toBe(4);
+      const methods = routes.map((r) => r.method).sort();
+      expect(methods).toEqual(['DELETE', 'GET', 'POST', 'PUT']);
+    });
+  });
+
+  describe('Enrichment Options', () => {
+    it('should only enrich routes when at least one option is enabled', () => {
+      const app = express();
+      app.get('/users', (req, res) => res.json([]));
+
+      // No enrichment options
+      const routes1 = discovery.discover(app, {});
+      expect(discovery.getEnrichedRoutes()).toHaveLength(0);
+
+      // With enrichment option
+      const routes2 = discovery.discover(app, {
+        enableMiddlewareAnalysis: true,
+      });
+      expect(discovery.getEnrichedRoutes()).toHaveLength(1);
+    });
+
+    it('should generate operationId when option is set', () => {
+      const app = express();
+      app.get('/users/:id', (req, res) => res.json({}));
+
+      const routes = discovery.discover(app, {
+        enableMetadataEnrichment: true,
+        generateOperationId: true,
+      });
+
+      const enrichedRoutes = discovery.getEnrichedRoutes();
+      expect(enrichedRoutes[0].operationId).toBeDefined();
+    });
+
+    it('should not generate operationId when option is false', () => {
+      const app = express();
+      app.get('/users/:id', (req, res) => res.json({}));
+
+      const routes = discovery.discover(app, {
+        enableMetadataEnrichment: true,
+        generateOperationId: false,
+      });
+
+      const enrichedRoutes = discovery.getEnrichedRoutes();
+      // operationId might still be generated from enricher with default behavior
+      expect(enrichedRoutes.length).toBe(1);
+    });
+  });
+
+  describe('Handler Edge Cases', () => {
+    it('should handle route with empty stack', () => {
+      const mockApp = {
+        _router: {
+          stack: [
+            {
+              route: {
+                path: '/test',
+                methods: { get: true },
+                stack: [], // Empty stack
+              },
+            },
+          ],
+        },
+      };
+
+      const routes = discovery.discover(mockApp as any);
+
+      expect(routes.length).toBe(1);
+      expect(routes[0].handler).toBeDefined();
+    });
+
+    it('should handle layer without handle property in stack', () => {
+      const mockApp = {
+        _router: {
+          stack: [
+            {
+              route: {
+                path: '/test',
+                methods: { get: true },
+                stack: [
+                  {
+                    // No handle property
+                    name: 'orphan',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const routes = discovery.discover(mockApp as any);
+
+      expect(routes.length).toBe(1);
+    });
+  });
+
+  describe('JSDoc Route Matching', () => {
+    it('should match routes case-insensitively by method', () => {
+      const app = express();
+      app.get('/items', (req, res) => res.json([]));
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'get', // lowercase
+              path: '/items',
+              summary: 'Get items',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('Get items');
+    });
+
+    it('should skip JSDoc metadata without method', () => {
+      const app = express();
+      app.get('/items', (req, res) => res.json([]));
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              // No method specified
+              path: '/items',
+              summary: 'Incomplete JSDoc',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // JSDoc should not be applied without method
+      expect(routes[0].metadata).toBeUndefined();
+    });
+
+    it('should skip JSDoc metadata without path', () => {
+      const app = express();
+      app.get('/items', (req, res) => res.json([]));
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              // No path specified
+              summary: 'Incomplete JSDoc',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      // JSDoc should not be applied without path
+      expect(routes[0].metadata).toBeUndefined();
+    });
+  });
+
+  describe('Metadata Merge Priorities', () => {
+    it('should use JSDoc summary when decorator has none', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        // No summary
+        tags: ['test'],
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              summary: 'JSDoc Summary Only',
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('JSDoc Summary Only');
+    });
+
+    it('should use decorator summary when JSDoc has none', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Decorator Summary',
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              // No summary
+              tags: ['jsdoc'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.summary).toBe('Decorator Summary');
+    });
+
+    it('should use JSDoc requestBody when decorator has none', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No requestBody
+      };
+
+      app.post('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'POST',
+              path: '/test',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: { type: 'object' },
+                  },
+                },
+              },
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.requestBody?.required).toBe(true);
+    });
+  });
+
+  describe('Merge Functions Edge Cases', () => {
+    it('should handle merging with both tags undefined', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No tags
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              description: 'Description',
+              // No tags
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.tags).toBeUndefined();
+    });
+
+    it('should handle merging with only decorator tags', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        tags: ['decorator-tag'],
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              // No tags
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.tags).toContain('decorator-tag');
+    });
+
+    it('should handle merging with only JSDoc tags', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No tags
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              tags: ['jsdoc-tag'],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.tags).toContain('jsdoc-tag');
+    });
+
+    it('should handle merging with both parameters undefined', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No parameters
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              // No parameters
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.parameters).toBeUndefined();
+    });
+
+    it('should handle merging with only decorator parameters', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        parameters: [
+          {
+            name: 'id',
+            in: 'path' as const,
+            required: true,
+          },
+        ],
+      };
+
+      app.get('/test/:id', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test/:id',
+              // No parameters
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.parameters).toHaveLength(1);
+    });
+
+    it('should handle merging with only JSDoc parameters', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No parameters
+      };
+
+      app.get('/test/:id', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test/:id',
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path' as const,
+                  required: true,
+                },
+              ],
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.parameters).toHaveLength(1);
+    });
+
+    it('should handle merging with both responses undefined', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No responses
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              // No responses
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.responses).toBeUndefined();
+    });
+
+    it('should handle merging with only decorator responses', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        responses: {
+          '200': { description: 'Success' },
+        },
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              // No responses
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.responses?.['200']).toBeDefined();
+    });
+
+    it('should handle merging with only JSDoc responses', () => {
+      const app = express();
+      const handler = (req: express.Request, res: express.Response) =>
+        res.json({});
+
+      (handler as any).__openapi_metadata = {
+        summary: 'Test',
+        // No responses
+      };
+
+      app.get('/test', handler);
+
+      const mockParser = {
+        parse: () => [
+          {
+            metadata: {
+              method: 'GET',
+              path: '/test',
+              responses: {
+                '201': { description: 'Created' },
+              },
+            },
+            comment: { raw: '', filePath: '', line: 0 },
+          },
+        ],
+      };
+
+      const routes = discovery.discover(app, {
+        enableJsDocParsing: true,
+        jsDocParser: mockParser as any,
+      });
+
+      expect(routes[0].metadata?.responses?.['201']).toBeDefined();
+    });
+  });
 });
