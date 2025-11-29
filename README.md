@@ -2,6 +2,7 @@
 
 [![Test](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test.yml/badge.svg)](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test.yml)
 [![Unit Tests](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test-unit.yml/badge.svg)](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test-unit.yml)
+[![Mutation Tests](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/mutation-tests.yml/badge.svg)](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/mutation-tests.yml)
 [![codecov](https://codecov.io/gh/iAn-P1nt0/express-swagger-auto/branch/main/graph/badge.svg)](https://codecov.io/gh/iAn-P1nt0/express-swagger-auto)
 
 > Hybrid OpenAPI 3.x generator for Express.js with zero-config setup

@@ -12,6 +12,10 @@ dist/
 coverage/
 .vitest/
 
+# Mutation Testing
+reports/
+.stryker-tmp/
+
 # IDE
 .vscode/
 .idea/

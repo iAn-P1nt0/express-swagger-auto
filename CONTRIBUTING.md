@@ -240,6 +240,28 @@ pnpm test src/security/SecurityDetector.test.ts
 - **Overall**: Track and aim for 85%+
 - Run `pnpm test:coverage` to check
 
+### Mutation Testing
+
+Mutation testing helps validate the quality of tests by checking if they can detect small code changes:
+
+```bash
+# Run mutation testing (time-intensive)
+pnpm test:mutation
+
+# Run on core modules only (faster)
+pnpm test:mutation:core
+
+# Generate mutation report summary
+pnpm mutation-report
+```
+
+Target mutation scores:
+- **Core modules**: ≥85%
+- **Parsers/Validators**: ≥80%
+- **CLI**: ≥75%
+
+See [docs/MUTATION_TESTING.md](docs/MUTATION_TESTING.md) for detailed guidance.
+
 ### Example App Testing
 
 ```bash
