@@ -306,6 +306,72 @@ it('should generate expected spec', () => {
 });
 ```
 
+## Security Testing Best Practices
+
+### Test Sensitive Data Handling
+
+Always verify that sensitive data is properly masked:
+
+```typescript
+import { runtimeCapture } from 'express-swagger-auto/middleware';
+
+describe('Sensitive Data Protection', () => {
+  it('should mask passwords in request body', () => {
+    const middleware = runtimeCapture({ enabled: true });
+    // ... test that password values are masked
+  });
+
+  it('should mask tokens in headers', () => {
+    const middleware = runtimeCapture({ enabled: true });
+    // ... test Authorization header handling
+  });
+});
+```
+
+### Test for Injection Attacks
+
+Include injection attack vectors in your test suite:
+
+```typescript
+import { sqlInjectionVectors, xssVectors } from './fixtures';
+
+describe('Injection Prevention', () => {
+  it.each(sqlInjectionVectors)('should handle SQL injection: %s', (vector) => {
+    // Test that SQL injection doesn't execute
+  });
+
+  it.each(xssVectors)('should sanitize XSS: %s', (vector) => {
+    // Test that XSS is escaped
+  });
+});
+```
+
+### Test Input Validation
+
+Validate edge cases in input handling:
+
+```typescript
+describe('Input Validation', () => {
+  it('should handle null body', () => { /* ... */ });
+  it('should handle empty strings', () => { /* ... */ });
+  it('should handle large payloads', () => { /* ... */ });
+  it('should handle unicode characters', () => { /* ... */ });
+});
+```
+
+### Security Test Coverage
+
+Aim for the following security test coverage:
+
+| Category | Target |
+|----------|--------|
+| Sensitive data masking | 100% |
+| Injection prevention | 90% |
+| Input validation | 95% |
+| Path traversal | 100% |
+
+See [SECURITY_TESTING.md](SECURITY_TESTING.md) for comprehensive security testing documentation.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -328,4 +394,5 @@ pnpm vitest run --reporter=verbose path/to/test.ts
 
 - [Vitest Documentation](https://vitest.dev/)
 - [Testing Best Practices](https://github.com/goldbergyoni/javascript-testing-best-practices)
+- [OWASP Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
 - [express-swagger-auto Repository](https://github.com/iAn-P1nt0/express-swagger-auto)
