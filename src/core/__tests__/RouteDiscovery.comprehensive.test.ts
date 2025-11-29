@@ -1313,9 +1313,9 @@ describe('RouteDiscovery - Comprehensive Tests', () => {
       });
 
       expect(routes.length).toBe(1);
-      // Schema extraction should be attempted
-      const route = routes[0] as any;
-      expect(route.operationId).toBeDefined();
+      // Schema extraction should be attempted - check through enriched routes API
+      const enrichedRoutes = discovery.getEnrichedRoutes();
+      expect(enrichedRoutes[0].operationId).toBeDefined();
     });
 
     it('should merge schema with existing metadata', () => {
