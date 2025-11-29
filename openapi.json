@@ -6,7 +6,54 @@
     "description": ""
   },
   "servers": [],
-  "paths": {},
+  "paths": {
+    "/api/users": {
+      "get": {
+        "summary": "GET /api/users",
+        "operationId": "get_api_users",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/users",
+        "operationId": "post_api_users",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    },
+    "/api/users/:id": {
+      "get": {
+        "summary": "GET /api/users/:id",
+        "operationId": "get_api_users_id",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    }
+  },
   "components": {
     "schemas": {},
     "securitySchemes": {}
