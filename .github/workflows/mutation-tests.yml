@@ -17,6 +17,11 @@ on:
         required: false
         default: 'all'
 
+# Limit permissions for security
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   mutation-test:
     name: Mutation Testing

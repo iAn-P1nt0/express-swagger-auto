@@ -14,6 +14,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 
 interface TrendEntry {
   timestamp: string;
@@ -70,7 +71,6 @@ function saveTrends(data: TrendsData): void {
  */
 function getGitInfo(): { commit?: string; branch?: string } {
   try {
-    const { execSync } = require('child_process');
     const commit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
     return { commit, branch };
