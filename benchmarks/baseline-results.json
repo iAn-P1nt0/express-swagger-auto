@@ -1,0 +1,154 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "description": "Performance baselines for express-swagger-auto",
+  "environment": {
+    "node": ">=18.0.0",
+    "platform": "linux"
+  },
+  "baselines": [
+    {
+      "name": "100 routes",
+      "category": "route-discovery",
+      "avgDuration": 25,
+      "minDuration": 20,
+      "maxDuration": 35,
+      "stdDev": 5,
+      "threshold": 50,
+      "unit": "ms"
+    },
+    {
+      "name": "500 routes",
+      "category": "route-discovery",
+      "avgDuration": 100,
+      "minDuration": 80,
+      "maxDuration": 150,
+      "stdDev": 20,
+      "threshold": 200,
+      "unit": "ms"
+    },
+    {
+      "name": "1000 routes",
+      "category": "route-discovery",
+      "avgDuration": 250,
+      "minDuration": 200,
+      "maxDuration": 350,
+      "stdDev": 50,
+      "threshold": 500,
+      "unit": "ms"
+    },
+    {
+      "name": "100 routes",
+      "category": "spec-generation",
+      "avgDuration": 50,
+      "minDuration": 40,
+      "maxDuration": 70,
+      "stdDev": 10,
+      "threshold": 100,
+      "unit": "ms"
+    },
+    {
+      "name": "500 routes",
+      "category": "spec-generation",
+      "avgDuration": 200,
+      "minDuration": 160,
+      "maxDuration": 280,
+      "stdDev": 40,
+      "threshold": 400,
+      "unit": "ms"
+    },
+    {
+      "name": "1000 routes",
+      "category": "spec-generation",
+      "avgDuration": 500,
+      "minDuration": 400,
+      "maxDuration": 700,
+      "stdDev": 100,
+      "threshold": 1000,
+      "unit": "ms"
+    },
+    {
+      "name": "5-level nested",
+      "category": "nested-routers",
+      "avgDuration": 10,
+      "minDuration": 8,
+      "maxDuration": 15,
+      "stdDev": 2,
+      "threshold": 20,
+      "unit": "ms"
+    },
+    {
+      "name": "10-level nested",
+      "category": "nested-routers",
+      "avgDuration": 25,
+      "minDuration": 20,
+      "maxDuration": 35,
+      "stdDev": 5,
+      "threshold": 50,
+      "unit": "ms"
+    },
+    {
+      "name": "10 middleware",
+      "category": "middleware-chain",
+      "avgDuration": 8,
+      "minDuration": 6,
+      "maxDuration": 12,
+      "stdDev": 2,
+      "threshold": 15,
+      "unit": "ms"
+    },
+    {
+      "name": "50 middleware",
+      "category": "middleware-chain",
+      "avgDuration": 25,
+      "minDuration": 20,
+      "maxDuration": 35,
+      "stdDev": 5,
+      "threshold": 50,
+      "unit": "ms"
+    },
+    {
+      "name": "auth detection",
+      "category": "middleware-analysis",
+      "avgDuration": 1,
+      "minDuration": 0.5,
+      "maxDuration": 2,
+      "stdDev": 0.5,
+      "threshold": 2,
+      "unit": "ms/route"
+    },
+    {
+      "name": "validation detection",
+      "category": "middleware-analysis",
+      "avgDuration": 1.5,
+      "minDuration": 1,
+      "maxDuration": 2.5,
+      "stdDev": 0.5,
+      "threshold": 3,
+      "unit": "ms/route"
+    }
+  ],
+  "targets": {
+    "route-discovery": {
+      "100-routes": { "target": 50, "unit": "ms" },
+      "500-routes": { "target": 200, "unit": "ms" },
+      "1000-routes": { "target": 500, "unit": "ms" }
+    },
+    "spec-generation": {
+      "100-routes": { "target": 100, "unit": "ms" },
+      "500-routes": { "target": 400, "unit": "ms" },
+      "1000-routes": { "target": 1000, "unit": "ms" }
+    },
+    "middleware-analysis": {
+      "single-middleware": { "target": 5, "unit": "ms/route" },
+      "10-chain": { "target": 15, "unit": "ms/route" },
+      "50-chain": { "target": 50, "unit": "ms/route" }
+    }
+  },
+  "notes": [
+    "Baselines established on Ubuntu Linux with Node.js 20.x",
+    "Times may vary ±10% based on system load",
+    "Memory measurements exclude Node.js runtime overhead",
+    "Update baselines after significant optimizations"
+  ]
+}
