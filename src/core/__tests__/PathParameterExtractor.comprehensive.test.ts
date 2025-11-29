@@ -733,7 +733,7 @@ describe('PathParameterExtractor - Comprehensive Tests', () => {
 
   describe('Regex Pattern Type Inference', () => {
     it('should infer string type from non-numeric regex pattern', () => {
-      // This tests line 189 - non-numeric patterns should return 'string'
+      // Non-numeric patterns (e.g., [a-z-]+) should return 'string' type
       const regex = /^\/resources\/(?<slug>[a-z-]+)$/;
       const result = extractor.extractPathParameters(regex);
 
@@ -1052,7 +1052,7 @@ describe('PathParameterExtractor - Comprehensive Tests', () => {
       const result = extractor.extractPathParameters('/items/:ID');
 
       expect(result.parameters).toHaveLength(1);
-      // ID matches /Id$/i pattern
+      // Parameter names ending with 'ID' (case-insensitive) are inferred as integer type
       expect(result.parameters[0].schema.type).toBe('integer');
     });
 
@@ -1067,7 +1067,7 @@ describe('PathParameterExtractor - Comprehensive Tests', () => {
       const result = extractor.extractPathParameters('/items/:item_id');
 
       expect(result.parameters).toHaveLength(1);
-      // Description generation converts camelCase
+      // Description generation handles various naming conventions including underscores
       expect(result.parameters[0].description).toBe('The item_id identifier');
     });
   });
