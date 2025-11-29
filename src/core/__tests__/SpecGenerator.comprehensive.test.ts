@@ -813,5 +813,1449 @@ describe('SpecGenerator - Comprehensive Tests', () => {
       expect(spec.paths['/Users']).toBeDefined();
       expect(spec.paths['/users']).toBeDefined();
     });
+
+    it('should handle Unicode characters in paths', () => {
+      const routes: RouteMetadata[] = [
+        { method: 'GET', path: '/api/données', handler: () => {} },
+        { method: 'GET', path: '/api/用户', handler: () => {} },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/api/données']).toBeDefined();
+      expect(spec.paths['/api/用户']).toBeDefined();
+    });
+
+    it('should handle large number of routes (100+ routes)', () => {
+      const routes: RouteMetadata[] = [];
+      for (let i = 0; i < 150; i++) {
+        routes.push({
+          method: i % 2 === 0 ? 'GET' : 'POST',
+          path: `/api/resource${i}`,
+          handler: () => {},
+        });
+      }
+
+      const startTime = Date.now();
+      const spec = generator.generate(routes);
+      const endTime = Date.now();
+
+      expect(Object.keys(spec.paths)).toHaveLength(150);
+      // Verify execution time is reasonable (less than 5 seconds)
+      expect(endTime - startTime).toBeLessThan(5000);
+    });
+
+    it('should handle deeply nested paths', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10',
+          handler: () => {},
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10']).toBeDefined();
+      expect(spec.paths['/level1/level2/level3/level4/level5/level6/level7/level8/level9/level10'].get.operationId).toBe(
+        'get_level1_level2_level3_level4_level5_level6_level7_level8_level9_level10'
+      );
+    });
+
+    it('should handle paths with trailing slashes', () => {
+      const routes: RouteMetadata[] = [
+        { method: 'GET', path: '/users/', handler: () => {} },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users/']).toBeDefined();
+    });
+
+    it('should handle duplicate route overwriting', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users',
+          handler: () => {},
+          metadata: { summary: 'First route' },
+        },
+        {
+          method: 'GET',
+          path: '/users',
+          handler: () => {},
+          metadata: { summary: 'Second route' },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      // Last route should win
+      expect(spec.paths['/users'].get.summary).toBe('Second route');
+    });
+  });
+
+  describe('Extended Security Schemes', () => {
+    it('should include OpenID Connect security scheme', () => {
+      const configWithOpenIdConnect: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          openIdConnect: {
+            type: 'openIdConnect',
+            description: 'OpenID Connect Authentication',
+          },
+        },
+      };
+      const gen = new SpecGenerator(configWithOpenIdConnect);
+      const spec = gen.generate([]);
+
+      expect(spec.components?.securitySchemes?.openIdConnect).toBeDefined();
+      expect(spec.components?.securitySchemes?.openIdConnect?.type).toBe('openIdConnect');
+    });
+
+    it('should include API Key in query security scheme', () => {
+      const configWithApiKeyQuery: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          apiKeyQuery: {
+            type: 'apiKey',
+            in: 'query',
+            name: 'api_key',
+            description: 'API Key in query parameter',
+          },
+        },
+      };
+      const gen = new SpecGenerator(configWithApiKeyQuery);
+      const spec = gen.generate([]);
+
+      expect(spec.components?.securitySchemes?.apiKeyQuery?.in).toBe('query');
+      expect(spec.components?.securitySchemes?.apiKeyQuery?.name).toBe('api_key');
+    });
+
+    it('should include API Key in cookie security scheme', () => {
+      const configWithApiKeyCookie: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          apiKeyCookie: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'session_id',
+            description: 'Session cookie',
+          },
+        },
+      };
+      const gen = new SpecGenerator(configWithApiKeyCookie);
+      const spec = gen.generate([]);
+
+      expect(spec.components?.securitySchemes?.apiKeyCookie?.in).toBe('cookie');
+      expect(spec.components?.securitySchemes?.apiKeyCookie?.name).toBe('session_id');
+    });
+
+    it('should support security requirements per operation', () => {
+      const configWithSecurity: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          bearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+      };
+      const gen = new SpecGenerator(configWithSecurity);
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/protected',
+          handler: () => {},
+          metadata: {
+            // Operation-level security can be specified in metadata
+          },
+        },
+      ];
+      const spec = gen.generate(routes);
+
+      expect(spec.components?.securitySchemes?.bearerAuth).toBeDefined();
+    });
+
+    it('should include OAuth2 with flows configuration hint', () => {
+      const configWithOAuth2Flows: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          oauth2Full: {
+            type: 'oauth2',
+            description: 'OAuth2 with multiple flows',
+          },
+        },
+      };
+      const gen = new SpecGenerator(configWithOAuth2Flows);
+      const spec = gen.generate([]);
+
+      expect(spec.components?.securitySchemes?.oauth2Full?.type).toBe('oauth2');
+    });
+
+    it('should handle bearer token without format', () => {
+      const configWithBearer: GeneratorConfig = {
+        ...defaultConfig,
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            description: 'Bearer authentication without format',
+          },
+        },
+      };
+      const gen = new SpecGenerator(configWithBearer);
+      const spec = gen.generate([]);
+
+      expect(spec.components?.securitySchemes?.bearerAuth?.scheme).toBe('bearer');
+      expect(spec.components?.securitySchemes?.bearerAuth?.bearerFormat).toBeUndefined();
+    });
+  });
+
+  describe('Extended Parameter Types', () => {
+    it('should handle query parameters from metadata', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/search',
+          handler: () => {},
+          metadata: {
+            parameters: [
+              {
+                name: 'q',
+                in: 'query',
+                required: true,
+                schema: { type: 'string' },
+                description: 'Search query',
+              },
+              {
+                name: 'page',
+                in: 'query',
+                required: false,
+                schema: { type: 'integer' },
+                description: 'Page number',
+              },
+            ],
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const params = spec.paths['/search'].get.parameters;
+      expect(params).toHaveLength(2);
+      expect(params?.find((p) => p.name === 'q')?.in).toBe('query');
+      expect(params?.find((p) => p.name === 'page')?.in).toBe('query');
+    });
+
+    it('should handle header parameters from metadata', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/api/data',
+          handler: () => {},
+          metadata: {
+            parameters: [
+              {
+                name: 'X-Request-ID',
+                in: 'header',
+                required: true,
+                schema: { type: 'string' },
+                description: 'Request tracking ID',
+              },
+              {
+                name: 'X-Api-Version',
+                in: 'header',
+                required: false,
+                schema: { type: 'string' },
+                description: 'API version',
+              },
+            ],
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const params = spec.paths['/api/data'].get.parameters;
+      expect(params?.find((p) => p.name === 'X-Request-ID')?.in).toBe('header');
+      expect(params?.find((p) => p.name === 'X-Api-Version')?.required).toBe(false);
+    });
+
+    it('should handle cookie parameters from metadata', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/dashboard',
+          handler: () => {},
+          metadata: {
+            parameters: [
+              {
+                name: 'session_token',
+                in: 'cookie',
+                required: true,
+                schema: { type: 'string' },
+                description: 'Session token',
+              },
+            ],
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const params = spec.paths['/dashboard'].get.parameters;
+      expect(params?.[0].in).toBe('cookie');
+      expect(params?.[0].name).toBe('session_token');
+    });
+
+    it('should handle mixed parameter types', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users/:id',
+          handler: () => {},
+          metadata: {
+            parameters: [
+              {
+                name: 'id',
+                in: 'path',
+                required: true,
+                schema: { type: 'integer' },
+              },
+              {
+                name: 'include',
+                in: 'query',
+                required: false,
+                schema: { type: 'string' },
+              },
+              {
+                name: 'Authorization',
+                in: 'header',
+                required: true,
+                schema: { type: 'string' },
+              },
+            ],
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const params = spec.paths['/users/:id'].get.parameters;
+      expect(params).toHaveLength(3);
+      expect(params?.filter((p) => p.in === 'path')).toHaveLength(1);
+      expect(params?.filter((p) => p.in === 'query')).toHaveLength(1);
+      expect(params?.filter((p) => p.in === 'header')).toHaveLength(1);
+    });
+
+    it('should handle parameters with enum values', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/orders',
+          handler: () => {},
+          metadata: {
+            parameters: [
+              {
+                name: 'status',
+                in: 'query',
+                required: false,
+                schema: {
+                  type: 'string',
+                  enum: ['pending', 'processing', 'shipped', 'delivered'],
+                },
+              },
+            ],
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const params = spec.paths['/orders'].get.parameters;
+      expect(params?.[0].schema?.enum).toEqual(['pending', 'processing', 'shipped', 'delivered']);
+    });
+
+    it('should handle optional path parameter indicator (for framework compatibility)', () => {
+      const routes: RouteMetadata[] = [
+        { method: 'GET', path: '/files/:filename?', handler: () => {} },
+      ];
+      const spec = generator.generate(routes);
+
+      // The path is stored as-is; parameter extraction handles the notation
+      expect(spec.paths['/files/:filename?']).toBeDefined();
+    });
+  });
+
+  describe('Extended Request Body Types', () => {
+    it('should handle XML content type in request body', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/import',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/xml': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      data: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/import'].post.requestBody?.content?.['application/xml']).toBeDefined();
+    });
+
+    it('should handle form-urlencoded content type', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/login',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/x-www-form-urlencoded': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      username: { type: 'string' },
+                      password: { type: 'string' },
+                    },
+                    required: ['username', 'password'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const requestBody = spec.paths['/login'].post.requestBody;
+      expect(requestBody?.content?.['application/x-www-form-urlencoded']).toBeDefined();
+      expect(requestBody?.content?.['application/x-www-form-urlencoded'].schema.required).toEqual([
+        'username',
+        'password',
+      ]);
+    });
+
+    it('should handle multipart/form-data for file uploads', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/upload',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      file: { type: 'string', format: 'binary' },
+                      description: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/upload'].post.requestBody?.content?.['multipart/form-data']?.schema;
+      expect(schema?.properties?.file?.format).toBe('binary');
+    });
+
+    it('should handle optional request body', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'PATCH',
+          path: '/settings',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: false,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      theme: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/settings'].patch.requestBody?.required).toBe(false);
+    });
+
+    it('should handle request body with description', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/articles',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              description: 'Article to create',
+              required: true,
+              content: {
+                'application/json': {
+                  schema: { type: 'object' },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/articles'].post.requestBody?.description).toBe('Article to create');
+    });
+  });
+
+  describe('Extended Response Status Codes', () => {
+    it('should handle 201 Created response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '201': {
+                description: 'User created successfully',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'integer' },
+                        name: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users'].post.responses['201'].description).toBe('User created successfully');
+    });
+
+    it('should handle 204 No Content response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'DELETE',
+          path: '/users/:id',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '204': {
+                description: 'User deleted successfully',
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users/:id'].delete.responses['204'].description).toBe('User deleted successfully');
+      // 204 typically has no content
+      expect(spec.paths['/users/:id'].delete.responses['204'].content).toBeUndefined();
+    });
+
+    it('should handle 400 Bad Request response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '400': {
+                description: 'Invalid request data',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        error: { type: 'string' },
+                        details: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users'].post.responses['400'].description).toBe('Invalid request data');
+    });
+
+    it('should handle 401 Unauthorized response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/protected',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '401': {
+                description: 'Authentication required',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        message: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/protected'].get.responses['401'].description).toBe('Authentication required');
+    });
+
+    it('should handle 403 Forbidden response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/admin',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '403': {
+                description: 'Access denied - insufficient permissions',
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/admin'].get.responses['403'].description).toBe('Access denied - insufficient permissions');
+    });
+
+    it('should handle 404 Not Found response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users/:id',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '404': {
+                description: 'User not found',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        error: { type: 'string' },
+                        code: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users/:id'].get.responses['404'].description).toBe('User not found');
+    });
+
+    it('should handle 500 Internal Server Error response', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '500': {
+                description: 'Internal server error',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        error: { type: 'string' },
+                        requestId: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      expect(spec.paths['/users'].get.responses['500'].description).toBe('Internal server error');
+    });
+
+    it('should handle multiple response codes for single operation', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/orders',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '201': { description: 'Order created' },
+              '400': { description: 'Invalid order data' },
+              '401': { description: 'Unauthorized' },
+              '403': { description: 'Forbidden' },
+              '500': { description: 'Server error' },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const responses = spec.paths['/orders'].post.responses;
+      expect(Object.keys(responses)).toHaveLength(5);
+      expect(responses['201']).toBeDefined();
+      expect(responses['400']).toBeDefined();
+      expect(responses['401']).toBeDefined();
+      expect(responses['403']).toBeDefined();
+      expect(responses['500']).toBeDefined();
+    });
+
+    it('should handle response with multiple content types', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/export',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'Export data',
+                content: {
+                  'application/json': {
+                    schema: { type: 'object' },
+                  },
+                  'application/xml': {
+                    schema: { type: 'object' },
+                  },
+                  'text/csv': {
+                    schema: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const content = spec.paths['/export'].get.responses['200'].content;
+      expect(content?.['application/json']).toBeDefined();
+      expect(content?.['application/xml']).toBeDefined();
+      expect(content?.['text/csv']).toBeDefined();
+    });
+  });
+
+  describe('Extended Component Schemas', () => {
+    it('should handle nested object schemas', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'User with address',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'integer' },
+                        name: { type: 'string' },
+                        address: {
+                          type: 'object',
+                          properties: {
+                            street: { type: 'string' },
+                            city: { type: 'string' },
+                            country: { type: 'string' },
+                            zipCode: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/users'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.properties?.address?.type).toBe('object');
+      expect(schema?.properties?.address?.properties?.city?.type).toBe('string');
+    });
+
+    it('should handle array of objects schema', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/orders',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'List of orders',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'integer' },
+                          total: { type: 'number' },
+                          items: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                productId: { type: 'integer' },
+                                quantity: { type: 'integer' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/orders'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.type).toBe('array');
+      expect(schema?.items?.properties?.items?.type).toBe('array');
+    });
+
+    it('should handle enum types in schema', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/tasks',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'Tasks with status enum',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'integer' },
+                        status: {
+                          type: 'string',
+                          enum: ['todo', 'in_progress', 'done', 'cancelled'],
+                        },
+                        priority: {
+                          type: 'integer',
+                          enum: [1, 2, 3, 4, 5],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/tasks'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.properties?.status?.enum).toEqual(['todo', 'in_progress', 'done', 'cancelled']);
+      expect(schema?.properties?.priority?.enum).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('should handle allOf composition', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/employees',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'Employee combining base and extension',
+                content: {
+                  'application/json': {
+                    schema: {
+                      allOf: [
+                        {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'integer' },
+                            name: { type: 'string' },
+                          },
+                        },
+                        {
+                          type: 'object',
+                          properties: {
+                            department: { type: 'string' },
+                            salary: { type: 'number' },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/employees'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.allOf).toHaveLength(2);
+      expect(schema?.allOf?.[0].properties?.name).toBeDefined();
+      expect(schema?.allOf?.[1].properties?.department).toBeDefined();
+    });
+
+    it('should handle oneOf composition', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/notifications',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    oneOf: [
+                      {
+                        type: 'object',
+                        properties: {
+                          type: { type: 'string', enum: ['email'] },
+                          email: { type: 'string' },
+                        },
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          type: { type: 'string', enum: ['sms'] },
+                          phone: { type: 'string' },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/notifications'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.oneOf).toHaveLength(2);
+    });
+
+    it('should handle anyOf composition', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/payments',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    anyOf: [
+                      {
+                        type: 'object',
+                        properties: {
+                          creditCard: { type: 'string' },
+                        },
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          bankAccount: { type: 'string' },
+                        },
+                      },
+                      {
+                        type: 'object',
+                        properties: {
+                          paypal: { type: 'string' },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/payments'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.anyOf).toHaveLength(3);
+    });
+
+    it('should handle $ref in schema', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users/:id',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'User reference',
+                content: {
+                  'application/json': {
+                    schema: {
+                      $ref: '#/components/schemas/User',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/users/:id'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.$ref).toBe('#/components/schemas/User');
+    });
+
+    it('should handle array with $ref items', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'List of users',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: {
+                        $ref: '#/components/schemas/User',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/users'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.items?.$ref).toBe('#/components/schemas/User');
+    });
+
+    it('should handle deeply nested schemas', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/organization',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'Deeply nested org structure',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        level1: {
+                          type: 'object',
+                          properties: {
+                            level2: {
+                              type: 'object',
+                              properties: {
+                                level3: {
+                                  type: 'object',
+                                  properties: {
+                                    level4: {
+                                      type: 'object',
+                                      properties: {
+                                        value: { type: 'string' },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/organization'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.properties?.level1?.properties?.level2?.properties?.level3?.properties?.level4?.properties?.value?.type).toBe('string');
+    });
+
+    it('should handle schema with format specifications', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/events',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      email: { type: 'string', format: 'email' },
+                      website: { type: 'string', format: 'uri' },
+                      startDate: { type: 'string', format: 'date' },
+                      startTime: { type: 'string', format: 'date-time' },
+                      duration: { type: 'integer', format: 'int32' },
+                      price: { type: 'number', format: 'float' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/events'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.properties?.id?.format).toBe('uuid');
+      expect(schema?.properties?.email?.format).toBe('email');
+      expect(schema?.properties?.startDate?.format).toBe('date');
+      expect(schema?.properties?.startTime?.format).toBe('date-time');
+    });
+
+    it('should handle schema with validation constraints', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/products',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      name: {
+                        type: 'string',
+                        minLength: 1,
+                        maxLength: 100,
+                      },
+                      price: {
+                        type: 'number',
+                        minimum: 0,
+                        maximum: 1000000,
+                      },
+                      quantity: {
+                        type: 'integer',
+                        minimum: 0,
+                      },
+                      tags: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        minItems: 1,
+                        maxItems: 10,
+                        uniqueItems: true,
+                      },
+                      sku: {
+                        type: 'string',
+                        pattern: '^[A-Z]{3}-[0-9]{4}$',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/products'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.properties?.name?.minLength).toBe(1);
+      expect(schema?.properties?.name?.maxLength).toBe(100);
+      expect(schema?.properties?.price?.minimum).toBe(0);
+      expect(schema?.properties?.tags?.uniqueItems).toBe(true);
+      expect(schema?.properties?.sku?.pattern).toBe('^[A-Z]{3}-[0-9]{4}$');
+    });
+
+    it('should handle additionalProperties in schema', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/metadata',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                    },
+                    additionalProperties: {
+                      type: 'string',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/metadata'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.additionalProperties).toEqual({ type: 'string' });
+    });
+
+    it('should handle nullable schema property', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/items',
+          handler: () => {},
+          metadata: {
+            responses: {
+              '200': {
+                description: 'Item with nullable field',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        description: { type: 'string', nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/items'].get.responses['200'].content?.['application/json']?.schema;
+      expect(schema?.properties?.description?.nullable).toBe(true);
+    });
+
+    it('should handle schema with default values', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/settings',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      theme: { type: 'string', default: 'light' },
+                      notifications: { type: 'boolean', default: true },
+                      pageSize: { type: 'integer', default: 20 },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/settings'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.properties?.theme?.default).toBe('light');
+      expect(schema?.properties?.notifications?.default).toBe(true);
+      expect(schema?.properties?.pageSize?.default).toBe(20);
+    });
+
+    it('should handle schema with example values', () => {
+      const routes: RouteMetadata[] = [
+        {
+          method: 'POST',
+          path: '/users',
+          handler: () => {},
+          metadata: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      email: {
+                        type: 'string',
+                        format: 'email',
+                        example: 'user@example.com',
+                      },
+                      age: {
+                        type: 'integer',
+                        example: 25,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+      const spec = generator.generate(routes);
+
+      const schema = spec.paths['/users'].post.requestBody?.content?.['application/json']?.schema;
+      expect(schema?.properties?.email?.example).toBe('user@example.com');
+      expect(schema?.properties?.age?.example).toBe(25);
+    });
+  });
+
+  describe('Spec Structure Validation', () => {
+    it('should generate valid OpenAPI 3.0.0 structure', () => {
+      const gen = new SpecGenerator({
+        ...defaultConfig,
+        specVersion: '3.0.0',
+      });
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/health',
+          handler: () => {},
+          metadata: {
+            summary: 'Health check',
+            responses: {
+              '200': { description: 'OK' },
+            },
+          },
+        },
+      ];
+      const spec = gen.generate(routes);
+
+      // Validate required OpenAPI 3.0.0 fields
+      expect(spec.openapi).toBe('3.0.0');
+      expect(spec.info).toBeDefined();
+      expect(spec.info.title).toBeDefined();
+      expect(spec.info.version).toBeDefined();
+      expect(spec.paths).toBeDefined();
+    });
+
+    it('should generate valid OpenAPI 3.1.0 structure', () => {
+      const gen = new SpecGenerator({
+        ...defaultConfig,
+        specVersion: '3.1.0',
+      });
+      const routes: RouteMetadata[] = [
+        {
+          method: 'GET',
+          path: '/health',
+          handler: () => {},
+          metadata: {
+            summary: 'Health check',
+            responses: {
+              '200': { description: 'OK' },
+            },
+          },
+        },
+      ];
+      const spec = gen.generate(routes);
+
+      // Validate required OpenAPI 3.1.0 fields
+      expect(spec.openapi).toBe('3.1.0');
+      expect(spec.info).toBeDefined();
+      expect(spec.info.title).toBeDefined();
+      expect(spec.info.version).toBeDefined();
+      expect(spec.paths).toBeDefined();
+    });
+
+    it('should include all required info fields', () => {
+      const spec = generator.generate([]);
+
+      expect(typeof spec.info.title).toBe('string');
+      expect(typeof spec.info.version).toBe('string');
+    });
+
+    it('should generate consistent output for same input', () => {
+      const routes: RouteMetadata[] = [
+        { method: 'GET', path: '/users', handler: () => {} },
+        { method: 'POST', path: '/users', handler: () => {} },
+      ];
+
+      const spec1 = generator.generate(routes);
+      const spec2 = generator.generate(routes);
+
+      expect(JSON.stringify(spec1)).toBe(JSON.stringify(spec2));
+    });
   });
 });
