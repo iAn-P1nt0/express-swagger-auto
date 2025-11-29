@@ -1,5 +1,9 @@
 # express-swagger-auto
 
+[![Test](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test.yml/badge.svg)](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test.yml)
+[![Unit Tests](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test-unit.yml/badge.svg)](https://github.com/iAn-P1nt0/express-swagger-auto/actions/workflows/test-unit.yml)
+[![codecov](https://codecov.io/gh/iAn-P1nt0/express-swagger-auto/branch/main/graph/badge.svg)](https://codecov.io/gh/iAn-P1nt0/express-swagger-auto)
+
 > Hybrid OpenAPI 3.x generator for Express.js with zero-config setup
 
 Automatically generate OpenAPI 3.0/3.1 specifications and Swagger UI from Express.js REST APIs using decorators, JSDoc, and runtime capture.
@@ -261,6 +265,43 @@ interface GeneratorConfig {
 - **Runtime capture disabled by default in production**
 - **Automatic sanitization of sensitive fields** (password, token, apiKey, etc.)
 - **No secrets in generated specs or logs**
+
+## Testing
+
+This project has comprehensive test coverage with Vitest.
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run unit tests only
+pnpm test:unit
+
+# Run integration tests only
+pnpm test:integration
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run unit tests with coverage
+pnpm test:unit:coverage
+```
+
+### Coverage Requirements
+
+| Category | Minimum |
+|----------|---------|
+| Lines | 85% |
+| Functions | 85% |
+| Branches | 85% |
+| Statements | 85% |
+
+For detailed testing documentation, see:
+- [Testing Guide](docs/TESTING_GUIDE.md)
+- [Writing Tests Guide](docs/WRITING_TESTS.md)
+- [Testing Conventions](TESTING_CONVENTIONS.md)
 
 ## Contributing
 
